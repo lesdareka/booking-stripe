@@ -37,8 +37,8 @@ export default async function handler(req, res) {
         tickets: quantity,
       },
 
-      success_url: "https://your-site.com/success",
-      cancel_url: "https://your-site.com/cancel",
+     success_url: "https://booking-stripe-coral.vercel.app/?success=true",
+cancel_url: "https://booking-stripe-coral.vercel.app/?canceled=true",
     });
 
     res.status(200).json({ url: session.url });
