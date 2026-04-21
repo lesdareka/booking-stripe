@@ -14,11 +14,14 @@ body{
   margin:40px auto;
 }
 
-h2{margin-bottom:20px;}
-
 .block{
   border-bottom:1px solid #6b1f2b;
   padding:16px 0;
+}
+
+.small-label{
+  font-size:13px;
+  margin-bottom:8px;
 }
 
 /* tickets */
@@ -26,12 +29,6 @@ h2{margin-bottom:20px;}
   display:flex;
   gap:12px;
   align-items:center;
-}
-
-.small-label{
-  font-size:13px;
-  margin-bottom:8px;
-  opacity:0.8;
 }
 
 button{
@@ -73,7 +70,7 @@ button{
 
 <!-- TIME -->
 <div class="block">
-  <select id="time" name="time" required style="width:100%;border:none;outline:none;">
+  <select id="time" required style="width:100%;border:none;outline:none;">
     <option value="">Select time</option>
   </select>
 </div>
@@ -104,100 +101,105 @@ button{
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 <script>
-// --------------------
-// FLATPICKR
-// --------------------
-flatpickr("#date", {
-  minDate: "today",
-  dateFormat: "Y-m-d",
+document.addEventListener("DOMContentLoaded", function () {
 
-  disable: [
-    function(date) {
-      return (date.getDay() !== 6 && date.getDay() !== 0);
+  // --------------------
+  // FLATPICKR INIT (ВАЖНО)
+  // --------------------
+  const dateInput = document.getElementById("date");
+
+  flatpickr(dateInput, {
+    minDate: "today",
+    dateFormat: "Y-m-d",
+
+    disable: [
+      function(date) {
+        return (date.getDay() !== 6 && date.getDay() !== 0);
+      }
+    ],
+
+    onChange: function(selectedDates) {
+      if (!selectedDates.length) return;
+
+      const day = selectedDates[0].getDay();
+      updateTime(day);
     }
-  ],
-
-  onChange: function(selectedDates) {
-    const d = selectedDates[0];
-    if (!d) return;
-
-    const day = d.getDay();
-    updateTime(day);
-  }
-});
-
-// --------------------
-// TIME
-// --------------------
-function updateTime(day){
-  const time = document.getElementById("time");
-  time.innerHTML = '<option value="">Select time</option>';
-
-  if(day === 6){
-    add("10:00");
-    add("16:00");
-  }
-
-  if(day === 0){
-    add("14:00");
-  }
-
-  function add(t){
-    const o=document.createElement("option");
-    o.value=t;
-    o.textContent=t;
-    time.appendChild(o);
-  }
-}
-
-// --------------------
-// TICKETS (1–10)
-// --------------------
-let count = 1;
-
-document.getElementById("plus").onclick = () => {
-  if(count < 10){
-    count++;
-    update();
-  }
-};
-
-document.getElementById("minus").onclick = () => {
-  if(count > 1){
-    count--;
-    update();
-  }
-};
-
-function update(){
-  document.getElementById("count").innerText = count;
-  document.getElementById("tickets").value = count;
-}
-
-// --------------------
-// SUBMIT → STRIPE
-// --------------------
-document.getElementById("form").addEventListener("submit", async (e)=>{
-  e.preventDefault();
-
-  const payload = {
-    date: document.getElementById("date").value,
-    time: document.getElementById("time").value,
-    tickets: count,
-    email: document.getElementById("email").value
-  };
-
-  const res = await fetch("/api/create-checkout", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify(payload)
   });
 
-  const data = await res.json();
+  // --------------------
+  // TIME
+  // --------------------
+  function updateTime(day){
+    const time = document.getElementById("time");
+    time.innerHTML = '<option value="">Select time</option>';
 
-  if(data.url){
-    window.location.href = data.url;
+    if(day === 6){
+      add("10:00");
+      add("16:00");
+    }
+
+    if(day === 0){
+      add("14:00");
+    }
+
+    function add(t){
+      const o=document.createElement("option");
+      o.value=t;
+      o.textContent=t;
+      time.appendChild(o);
+    }
   }
+
+  // --------------------
+  // TICKETS (1–10)
+  // --------------------
+  let count = 1;
+
+  document.getElementById("plus").onclick = () => {
+    if(count < 10){
+      count++;
+      update();
+    }
+  };
+
+  document.getElementById("minus").onclick = () => {
+    if(count > 1){
+      count--;
+      update();
+    }
+  };
+
+  function update(){
+    document.getElementById("count").innerText = count;
+    document.getElementById("tickets").value = count;
+  }
+
+  // --------------------
+  // SUBMIT
+  // --------------------
+  document.getElementById("form").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+
+    const payload = {
+      date: document.getElementById("date").value,
+      time: document.getElementById("time").value,
+      tickets: count,
+      email: document.getElementById("email").value
+    };
+
+    const res = await fetch("/api/create-checkout", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if(data.url){
+      window.location.href = data.url;
+    }
+  });
+
 });
 </script>
 
