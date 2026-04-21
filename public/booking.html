@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <title>Booking</title>
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
 <style>
 body{
   font-family: Helvetica, Arial, sans-serif;
@@ -14,55 +16,13 @@ body{
 
 h2{margin-bottom:20px;}
 
-/* CALENDAR HEADER */
-.calendar-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:10px;
-  font-weight:600;
-}
-
-/* CALENDAR */
-.calendar {
-  display:grid;
-  grid-template-columns: repeat(7,1fr);
-  gap:6px;
-  font-size:12px;
-  text-align:center;
-}
-
-.day {
-  padding:8px;
-  border:1px solid #ddd;
-  cursor:pointer;
-  opacity:0.3;
-}
-
-.day.active {
-  border:1px solid #6b1f2b;
-  opacity:1;
-  background:#6b1f2b;
-  color:white;
-}
-
-.day.allowed {
-  opacity:1;
-}
-
-.day.disabled {
-  opacity:0.15;
-  pointer-events:none;
-}
-
-/* blocks */
 .block{
   border-bottom:1px solid #6b1f2b;
   padding:16px 0;
 }
 
 /* tickets */
-.counter {
+.counter{
   display:flex;
   gap:12px;
   align-items:center;
@@ -76,14 +36,20 @@ h2{margin-bottom:20px;}
 
 button{
   cursor:pointer;
+  background:none;
+  border:none;
+  font-size:18px;
+  color:#6b1f2b;
 }
 
 .primary-btn{
   width:100%;
   padding:14px;
+  margin-top:20px;
   border:1px solid #6b1f2b;
   background:transparent;
   color:#6b1f2b;
+  cursor:pointer;
 }
 
 .primary-btn:hover{
@@ -99,44 +65,35 @@ button{
 
 <form id="form">
 
-<!-- CALENDAR -->
+<!-- DATE -->
 <div class="block">
-
-  <div class="calendar-header">
-    <span id="month"></span>
-    <span id="year"></span>
-  </div>
-
-  <div class="calendar" id="calendar"></div>
-
-  <input type="hidden" name="date" id="date">
+  <input type="text" id="date" placeholder="Select date"
+  style="width:100%;border:none;outline:none;">
 </div>
 
 <!-- TIME -->
 <div class="block">
-  <select id="time" name="time" required style="width:100%;border:none;">
+  <select id="time" name="time" required style="width:100%;border:none;outline:none;">
     <option value="">Select time</option>
   </select>
 </div>
 
 <!-- TICKETS -->
 <div class="block">
-
   <div class="small-label">Tickets</div>
 
   <div class="counter">
     <button type="button" id="minus">–</button>
     <span id="count">1</span>
     <button type="button" id="plus">+</button>
-
-    <input type="hidden" name="tickets" id="tickets" value="1">
   </div>
 
+  <input type="hidden" id="tickets" value="1">
 </div>
 
 <!-- EMAIL -->
 <div class="block">
-  <input type="email" name="email" id="email" placeholder="Email"
+  <input type="email" id="email" placeholder="Email"
   style="width:100%;border:none;outline:none;">
 </div>
 
@@ -144,96 +101,60 @@ button{
 
 </form>
 
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
 <script>
-const calendar = document.getElementById("calendar");
-const dateInput = document.getElementById("date");
-const time = document.getElementById("time");
+// --------------------
+// FLATPICKR
+// --------------------
+flatpickr("#date", {
+  minDate: "today",
+  dateFormat: "Y-m-d",
 
-const monthEl = document.getElementById("month");
-const yearEl = document.getElementById("year");
-
-let count = 1;
-
-// ----------------------
-// HEADER (MONTH + YEAR)
-// ----------------------
-const now = new Date();
-const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-
-monthEl.innerText = months[now.getMonth()];
-yearEl.innerText = now.getFullYear();
-
-// ----------------------
-// CALENDAR
-// ----------------------
-function generateCalendar(){
-  const today = new Date();
-
-  for(let i=0;i<30;i++){
-    const d = new Date();
-    d.setDate(today.getDate()+i);
-
-    const dayNum = d.getDay();
-
-    const el = document.createElement("div");
-    el.classList.add("day");
-
-    el.innerText = d.getDate();
-
-    el.dataset.date = d.toISOString().split("T")[0];
-    el.dataset.day = dayNum;
-
-    if(dayNum === 6 || dayNum === 0){
-      el.classList.add("allowed");
-    } else {
-      el.classList.add("disabled");
+  disable: [
+    function(date) {
+      return (date.getDay() !== 6 && date.getDay() !== 0);
     }
+  ],
 
-    el.onclick = () => {
+  onChange: function(selectedDates) {
+    const d = selectedDates[0];
+    if (!d) return;
 
-      if(!(dayNum === 6 || dayNum === 0)) return;
-
-      document.querySelectorAll(".day").forEach(x=>x.classList.remove("active"));
-      el.classList.add("active");
-
-      dateInput.value = el.dataset.date;
-
-      updateTime(dayNum);
-    };
-
-    calendar.appendChild(el);
+    const day = d.getDay();
+    updateTime(day);
   }
-}
+});
 
-generateCalendar();
-
-// ----------------------
+// --------------------
 // TIME
-// ----------------------
+// --------------------
 function updateTime(day){
+  const time = document.getElementById("time");
   time.innerHTML = '<option value="">Select time</option>';
 
-  let slots = [];
-
   if(day === 6){
-    slots = ["10:00","16:00"];
+    add("10:00");
+    add("16:00");
   }
 
   if(day === 0){
-    slots = ["14:00"];
+    add("14:00");
   }
 
-  slots.forEach(t=>{
+  function add(t){
     const o=document.createElement("option");
     o.value=t;
     o.textContent=t;
     time.appendChild(o);
-  });
+  }
 }
 
-// ----------------------
+// --------------------
 // TICKETS (1–10)
-// ----------------------
+// --------------------
+let count = 1;
+
 document.getElementById("plus").onclick = () => {
   if(count < 10){
     count++;
@@ -253,15 +174,15 @@ function update(){
   document.getElementById("tickets").value = count;
 }
 
-// ----------------------
-// SUBMIT
-// ----------------------
+// --------------------
+// SUBMIT → STRIPE
+// --------------------
 document.getElementById("form").addEventListener("submit", async (e)=>{
   e.preventDefault();
 
   const payload = {
-    date: dateInput.value,
-    time: time.value,
+    date: document.getElementById("date").value,
+    time: document.getElementById("time").value,
     tickets: count,
     email: document.getElementById("email").value
   };
