@@ -4,13 +4,11 @@
 <meta charset="UTF-8">
 <title>Booking</title>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-
 <style>
 body{
   font-family: Helvetica, Arial, sans-serif;
-  max-width: 460px;
-  margin: 40px auto;
+  max-width:460px;
+  margin:40px auto;
   color:#6b1f2b;
 }
 
@@ -18,6 +16,28 @@ body{
 
 .label{ font-size:13px; margin-bottom:6px; opacity:0.7; }
 
+/* day selector */
+.days{
+  display:flex;
+  gap:10px;
+}
+
+.day{
+  flex:1;
+  padding:12px;
+  border:1px solid #ddd;
+  text-align:center;
+  border-radius:10px;
+  cursor:pointer;
+}
+
+.day.active{
+  background:#6b1f2b;
+  color:white;
+  border-color:#6b1f2b;
+}
+
+/* date */
 .input{
   width:100%;
   padding:12px;
@@ -25,6 +45,7 @@ body{
   border-radius:10px;
 }
 
+/* time */
 .chips{ display:flex; gap:8px; flex-wrap:wrap; }
 
 .chip{
@@ -39,6 +60,7 @@ body{
   color:white;
 }
 
+/* tickets */
 .counter{ display:flex; gap:10px; align-items:center; }
 
 button{ cursor:pointer; }
@@ -61,27 +83,43 @@ button{ cursor:pointer; }
 
 <form id="form">
 
+<!-- STEP 1: DAY -->
 <div class="block">
-  <div class="label">Date</div>
-  <input id="date" class="input" type="text" placeholder="Select date" readonly>
+  <div class="label">Choose day</div>
+
+  <div class="days">
+    <div class="day" id="sat">Saturday</div>
+    <div class="day" id="sun">Sunday</div>
+  </div>
 </div>
 
+<!-- STEP 2: DATE -->
+<div class="block">
+  <div class="label">Date</div>
+  <input id="date" class="input" type="date" disabled>
+</div>
+
+<!-- TIME -->
 <div class="block">
   <div class="label">Time</div>
   <div class="chips" id="timeSlots"></div>
   <input type="hidden" id="time">
 </div>
 
+<!-- TICKETS -->
 <div class="block">
-  <div class="label">Tickets</div>
+  <div class="label">Tickets (1–10)</div>
+
   <div class="counter">
     <button type="button" id="minus">-</button>
     <span id="count">1</span>
     <button type="button" id="plus">+</button>
   </div>
+
   <input type="hidden" id="tickets" value="1">
 </div>
 
+<!-- EMAIL -->
 <div class="block">
   <div class="label">Email</div>
   <input id="email" class="input" type="email">
@@ -91,49 +129,81 @@ button{ cursor:pointer; }
 
 </form>
 
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-
+let selectedDay = null;
 let selectedTime = null;
 let count = 1;
 
-// calendar
-flatpickr("#date", {
-  minDate:"today",
-  dateFormat:"Y-m-d",
-  disable:[
-    date => (date.getDay() !== 6 && date.getDay() !== 0)
-  ],
-  onChange:(dates)=>{
-    if(!dates.length) return;
-    renderTimes(dates[0].getDay());
-  }
-});
+const dateInput = document.getElementById("date");
 
-// time
+// STEP 1: choose day
+document.getElementById("sat").onclick = () => {
+  selectDay("sat");
+  enableDate(6);
+};
+
+document.getElementById("sun").onclick = () => {
+  selectDay("sun");
+  enableDate(0);
+};
+
+function selectDay(type){
+  document.querySelectorAll(".day").forEach(d => d.classList.remove("active"));
+  document.getElementById(type).classList.add("active");
+}
+
+// enable date input with constraint
+function enableDate(dayType){
+  selectedDay = dayType;
+
+  dateInput.disabled = false;
+  dateInput.value = "";
+  document.getElementById("timeSlots").innerHTML = "";
+  selectedTime = null;
+
+  dateInput.onchange = () => {
+    const d = new Date(dateInput.value);
+    const day = d.getDay();
+
+    if(dayType === 6 && day !== 6){
+      alert("Only Saturday allowed");
+      dateInput.value = "";
+      return;
+    }
+
+    if(dayType === 0 && day !== 0){
+      alert("Only Sunday allowed");
+      dateInput.value = "";
+      return;
+    }
+
+    renderTimes(day);
+  };
+}
+
+// time slots
 function renderTimes(day){
   const box = document.getElementById("timeSlots");
   box.innerHTML = "";
 
   let slots = [];
-  if(day===6) slots=["10:00","16:00"];
-  if(day===0) slots=["14:00"];
+
+  if(day === 6) slots = ["10:00", "16:00"];
+  if(day === 0) slots = ["14:00"];
 
   slots.forEach(t=>{
-    const d=document.createElement("div");
-    d.className="chip";
-    d.textContent=t;
+    const el = document.createElement("div");
+    el.className="chip";
+    el.textContent=t;
 
-    d.onclick=()=>{
-      document.querySelectorAll(".chip").forEach(x=>x.classList.remove("active"));
-      d.classList.add("active");
+    el.onclick=()=>{
+      document.querySelectorAll(".chip").forEach(c=>c.classList.remove("active"));
+      el.classList.add("active");
       selectedTime=t;
       document.getElementById("time").value=t;
     };
 
-    box.appendChild(d);
+    box.appendChild(el);
   });
 }
 
@@ -158,8 +228,8 @@ document.getElementById("minus").onclick=()=>{
 document.getElementById("form").addEventListener("submit", async (e)=>{
   e.preventDefault();
 
-  if(!selectedTime){
-    alert("Select time");
+  if(!selectedDay || !dateInput.value || !selectedTime){
+    alert("Fill all fields");
     return;
   }
 
@@ -167,7 +237,7 @@ document.getElementById("form").addEventListener("submit", async (e)=>{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body: JSON.stringify({
-      date: document.getElementById("date").value,
+      date: dateInput.value,
       time: selectedTime,
       tickets: count,
       email: document.getElementById("email").value
@@ -176,8 +246,6 @@ document.getElementById("form").addEventListener("submit", async (e)=>{
 
   const data = await res.json();
   if(data.url) window.location.href=data.url;
-});
-
 });
 </script>
 
