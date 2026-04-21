@@ -7,31 +7,75 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
 <title>Booking</title>
+
+<style>
+body{
+  font-family: Helvetica, Arial, sans-serif;
+  color:#6b1f2b;
+}
+
+form{
+  max-width:420px;
+  margin:40px auto;
+}
+
+.block{
+  border-bottom:1px solid #6b1f2b;
+  padding:18px 0;
+}
+
+input, select{
+  width:100%;
+  border:none;
+  outline:none;
+  font-size:16px;
+  background:transparent;
+}
+
+.row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+button{
+  cursor:pointer;
+}
+
+.primary-btn{
+  margin-top:28px;
+  width:100%;
+  padding:14px;
+  border:1px solid #6b1f2b;
+  background:#6b1f2b;
+  color:white;
+  font-size:16px;
+}
+</style>
 </head>
 
-<body style="font-family:Helvetica, Arial, sans-serif;color:#6b1f2b;">
+<body>
 
-<form id="booking-form" style="max-width:420px;margin:40px auto;">
+<form id="booking-form">
 
   <!-- DATE -->
-  <div style="border-bottom:1px solid #6b1f2b;padding:18px 0;">
-    <input type="text" id="date-input" name="date" placeholder="Select date" required
-      style="border:none;width:100%;outline:none;font-size:16px;">
+  <div class="block">
+    <input type="text" id="date-input" name="date" placeholder="Select date" required readonly>
   </div>
 
   <!-- TIME -->
-  <div style="border-bottom:1px solid #6b1f2b;padding:18px 0;">
-    <select name="time" required style="border:none;width:100%;font-size:16px;">
+  <div class="block">
+    <select name="time" id="time-select" required>
       <option value="">Select time</option>
     </select>
   </div>
 
   <!-- TICKETS -->
-  <div style="border-bottom:1px solid #6b1f2b;padding:18px 0;display:flex;justify-content:space-between;">
+  <div class="block row">
     <span>Tickets</span>
 
-    <div style="display:flex;gap:10px;align-items:center;">
-      <button type="button" id="minus">–</button>
+    <div class="row" style="gap:10px;">
+      <button type="button" id="minus">-</button>
       <span id="count">1</span>
       <button type="button" id="plus">+</button>
     </div>
@@ -40,102 +84,120 @@
   </div>
 
   <!-- EMAIL -->
-  <div style="border-bottom:1px solid #6b1f2b;padding:18px 0;">
-    <input type="email" name="email" placeholder="Email" required
-      style="border:none;width:100%;outline:none;font-size:16px;">
+  <div class="block">
+    <input type="email" name="email" placeholder="Email" required>
   </div>
 
-  <!-- BUTTON -->
-  <button type="submit"
-    style="margin-top:28px;width:100%;padding:14px;border:1px solid #6b1f2b;background:transparent;">
-    Buy ticket
-  </button>
+  <button class="primary-btn" type="submit">Buy ticket</button>
 
 </form>
 
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 <script>
-// DATE
-flatpickr("#date-input", {
+let count = 1;
+
+// --------------------
+// INIT CALENDAR
+// --------------------
+const dateInput = document.getElementById("date-input");
+
+window.flatpickr(dateInput, {
   dateFormat: "Y-m-d",
   minDate: "today",
+
   disable: [
-    function(date) {
+    function(date){
       return (date.getDay() !== 6 && date.getDay() !== 0);
     }
   ],
-  onChange: function(selectedDates) {
+
+  onChange: function(selectedDates){
+    if (!selectedDates || !selectedDates.length) return;
     updateTimeOptions(selectedDates[0]);
   }
 });
 
-// TIME
-function updateTimeOptions(date) {
-  const select = document.querySelector('select[name="time"]');
+// --------------------
+// TIME LOGIC
+// --------------------
+function updateTimeOptions(date){
+  const select = document.getElementById("time-select");
   select.innerHTML = '<option value="">Select time</option>';
 
   if (!date) return;
 
-  if (date.getDay() === 6) {
+  const day = date.getDay();
+
+  if (day === 6) {
     addOption(select, "10:00");
     addOption(select, "16:00");
   }
 
-  if (date.getDay() === 0) {
+  if (day === 0) {
     addOption(select, "14:00");
   }
 }
 
-function addOption(select, value) {
-  const option = document.createElement("option");
-  option.value = value;
-  option.textContent = value;
-  select.appendChild(option);
+function addOption(select, value){
+  const opt = document.createElement("option");
+  opt.value = value;
+  opt.textContent = value;
+  select.appendChild(opt);
 }
 
+// --------------------
 // TICKETS
-let count = 1;
-
-document.getElementById('plus').onclick = () => {
+// --------------------
+document.getElementById("plus").onclick = () => {
   if (count < 10) {
     count++;
-    update();
+    syncTickets();
   }
 };
 
-document.getElementById('minus').onclick = () => {
+document.getElementById("minus").onclick = () => {
   if (count > 1) {
     count--;
-    update();
+    syncTickets();
   }
 };
 
-function update() {
-  document.getElementById('count').innerText = count;
-  document.getElementById('tickets').value = count;
+function syncTickets(){
+  document.getElementById("count").innerText = count;
+  document.getElementById("tickets").value = count;
 }
 
-// SUBMIT → STRIPE
-document.getElementById('booking-form').addEventListener('submit', async function(e) {
+// --------------------
+// SUBMIT
+// --------------------
+document.getElementById("booking-form").addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const formData = Object.fromEntries(new FormData(this));
+  const date = document.getElementById("date-input").value;
+  const time = document.getElementById("time-select").value;
+  const email = e.target.email.value;
 
-  const response = await fetch("/api/create-checkout", {
+  if (!date || !time) {
+    alert("Please select date and time");
+    return;
+  }
+
+  const res = await fetch("/api/create-checkout", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(formData)
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      date,
+      time,
+      tickets: count,
+      email
+    })
   });
 
-  const data = await response.json();
+  const data = await res.json();
 
   if (data.url) {
     window.location.href = data.url;
-  } else {
-    alert("Payment error");
   }
 });
 </script>
