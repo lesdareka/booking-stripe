@@ -5,54 +5,74 @@
 <title>Booking</title>
 
 <style>
-body {
+body{
   font-family: Helvetica, Arial, sans-serif;
   color:#6b1f2b;
   max-width:420px;
   margin:40px auto;
 }
 
-.block {
+h2{margin-bottom:20px;}
+
+.block{
   border-bottom:1px solid #6b1f2b;
   padding:16px 0;
 }
 
-.dates {
-  display:flex;
-  gap:10px;
+/* CALENDAR UI */
+.calendar {
+  display:grid;
+  grid-template-columns: repeat(7,1fr);
+  gap:6px;
+  font-size:12px;
+  text-align:center;
 }
 
 .day {
-  flex:1;
-  padding:12px;
-  border:1px solid #6b1f2b;
-  text-align:center;
+  padding:8px;
+  border:1px solid #ddd;
   cursor:pointer;
-  opacity:0.4;
-  transition:0.2s;
+  opacity:0.3;
 }
 
 .day.active {
+  border:1px solid #6b1f2b;
   opacity:1;
   background:#6b1f2b;
   color:white;
 }
 
-.day:hover {
-  opacity:0.8;
+.day.allowed {
+  opacity:1;
+  cursor:pointer;
 }
 
-button {
+.day.disabled {
+  opacity:0.15;
+  pointer-events:none;
+}
+
+/* tickets */
+.counter {
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+
+button{
+  cursor:pointer;
+}
+
+.primary-btn{
   width:100%;
   padding:14px;
-  margin-top:20px;
   border:1px solid #6b1f2b;
   background:transparent;
   color:#6b1f2b;
   cursor:pointer;
 }
 
-button:hover {
+.primary-btn:hover{
   background:#6b1f2b;
   color:white;
 }
@@ -65,74 +85,146 @@ button:hover {
 
 <form id="form">
 
-  <!-- DAYS -->
-  <div class="block">
-    <div class="dates">
-      <div class="day" data-day="6">Saturday</div>
-      <div class="day" data-day="0">Sunday</div>
-    </div>
-    <input type="hidden" id="day" name="day">
-  </div>
+<!-- CALENDAR -->
+<div class="block">
+  <div class="calendar" id="calendar"></div>
+  <input type="hidden" name="date" id="date">
+</div>
 
-  <!-- TIME -->
-  <div class="block">
-    <select id="time" name="time" required style="width:100%;border:none;">
-      <option value="">Select time</option>
-    </select>
-  </div>
+<!-- TIME -->
+<div class="block">
+  <select id="time" name="time" required style="width:100%;border:none;">
+    <option value="">Select time</option>
+  </select>
+</div>
 
-  <!-- EMAIL -->
-  <div class="block">
-    <input id="email" type="email" name="email" placeholder="Email"
-    style="width:100%;border:none;outline:none;">
+<!-- TICKETS -->
+<div class="block">
+  <div class="counter">
+    <button type="button" id="minus">–</button>
+    <span id="count">1</span>
+    <button type="button" id="plus">+</button>
+    <input type="hidden" name="tickets" id="tickets" value="1">
   </div>
+</div>
 
-  <button type="submit">Buy Ticket</button>
+<!-- EMAIL -->
+<div class="block">
+  <input type="email" name="email" id="email" placeholder="Email"
+  style="width:100%;border:none;outline:none;">
+</div>
+
+<button class="primary-btn" type="submit">Buy Ticket</button>
 
 </form>
 
 <script>
-const days = document.querySelectorAll(".day");
+const calendar = document.getElementById("calendar");
+const dateInput = document.getElementById("date");
 const time = document.getElementById("time");
-const hiddenDay = document.getElementById("day");
 
-days.forEach(d => {
-  d.onclick = () => {
+let selectedDate = null;
 
-    days.forEach(x => x.classList.remove("active"));
-    d.classList.add("active");
+// ----------------------
+// GENERATE NEXT 30 DAYS
+// ----------------------
+function generateCalendar(){
+  const today = new Date();
 
-    const day = d.dataset.day;
-    hiddenDay.value = day;
+  for(let i=0;i<30;i++){
+    const d = new Date();
+    d.setDate(today.getDate()+i);
 
-    time.innerHTML = '<option value="">Select time</option>';
+    const dayNum = d.getDay();
 
-    if (day == "6") {
-      add("10:00");
-      add("16:00");
+    const el = document.createElement("div");
+    el.classList.add("day");
+
+    el.innerText = d.getDate();
+
+    el.dataset.date = d.toISOString().split("T")[0];
+    el.dataset.day = dayNum;
+
+    // allow only sat/sun
+    if(dayNum === 6 || dayNum === 0){
+      el.classList.add("allowed");
+    } else {
+      el.classList.add("disabled");
     }
 
-    if (day == "0") {
-      add("14:00");
-    }
-  };
-});
+    el.onclick = () => {
 
-function add(t){
-  const o = document.createElement("option");
-  o.value = t;
-  o.textContent = t;
-  time.appendChild(o);
+      if(!(dayNum === 6 || dayNum === 0)) return;
+
+      document.querySelectorAll(".day").forEach(x=>x.classList.remove("active"));
+      el.classList.add("active");
+
+      selectedDate = el.dataset.date;
+      dateInput.value = selectedDate;
+
+      updateTime(dayNum);
+    };
+
+    calendar.appendChild(el);
+  }
 }
 
-document.getElementById("form").addEventListener("submit", async (e) => {
+generateCalendar();
+
+// ----------------------
+// TIME SLOTS
+// ----------------------
+function updateTime(day){
+  time.innerHTML = '<option value="">Select time</option>';
+
+  let slots = [];
+
+  if(day === 6){
+    slots = ["10:00","16:00"];
+  }
+
+  if(day === 0){
+    slots = ["14:00"];
+  }
+
+  slots.forEach(t=>{
+    const o=document.createElement("option");
+    o.value=t;
+    o.textContent=t;
+    time.appendChild(o);
+  });
+}
+
+// ----------------------
+// TICKETS
+// ----------------------
+let count = 1;
+
+document.getElementById("plus").onclick = () => {
+  count++;
+  document.getElementById("count").innerText = count;
+  document.getElementById("tickets").value = count;
+};
+
+document.getElementById("minus").onclick = () => {
+  if(count>1){
+    count--;
+    document.getElementById("count").innerText = count;
+    document.getElementById("tickets").value = count;
+  }
+};
+
+// ----------------------
+// SUBMIT
+// ----------------------
+document.getElementById("form").addEventListener("submit", async (e)=>{
   e.preventDefault();
 
   const payload = {
-    date: hiddenDay.value,
+    date: dateInput.value,
     time: time.value,
-    email: document.getElementById("email").value,
-    tickets: 1
+    tickets: document.getElementById("tickets").value,
+    email: document.getElementById("email").value
   };
 
   const res = await fetch("/api/create-checkout", {
