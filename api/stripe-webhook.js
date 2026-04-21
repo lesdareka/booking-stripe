@@ -1,4 +1,10 @@
 import crypto from "crypto";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
 
 export default async function handler(req, res) {
   console.log("WEBHOOK TRIGGERED");
@@ -18,15 +24,15 @@ export default async function handler(req, res) {
       const time = session.metadata?.time;
       const tickets = session.metadata?.tickets;
 
-      // 👉 ВАЖНО: hash создаём ПОСЛЕ email
+      console.log("Paid user:", email, date, time, tickets);
+
+      // ✔ 1. MAILCHIMP (оставляем как есть)
       const subscriberHash = crypto
         .createHash("md5")
         .update(email.toLowerCase())
         .digest("hex");
 
-      console.log("Paid user:", email, date, time, tickets);
-
-      const response = await fetch(
+      await fetch(
         `https://${process.env.MAILCHIMP_SERVER}.api.mailchimp.com/3.0/lists/${process.env.MAILCHIMP_AUDIENCE_ID}/members/${subscriberHash}`,
         {
           method: "PUT",
@@ -37,19 +43,28 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             email_address: email,
             status_if_new: "subscribed",
-
             merge_fields: {
               MMERGE7: date,
               MMERGE8: time,
             },
-
             tags: [`tickets_${tickets}`],
           }),
         }
       );
 
-      const data = await response.json();
-      console.log("Mailchimp response:", data);
+      // ✔ 2. SUPABASE (ЭТОГО НЕ БЫЛО)
+      const { error } = await supabase.from("bookings").insert([
+        {
+          email,
+          date,
+          time,
+          tickets: Number(tickets),
+        },
+      ]);
+
+      if (error) {
+        console.error("SUPABASE ERROR:", error);
+      }
     }
 
     res.status(200).json({ received: true });
