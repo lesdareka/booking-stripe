@@ -14,12 +14,16 @@ body{
 
 h2{margin-bottom:20px;}
 
-.block{
-  border-bottom:1px solid #6b1f2b;
-  padding:16px 0;
+/* CALENDAR HEADER */
+.calendar-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+  font-weight:600;
 }
 
-/* CALENDAR UI */
+/* CALENDAR */
 .calendar {
   display:grid;
   grid-template-columns: repeat(7,1fr);
@@ -44,7 +48,6 @@ h2{margin-bottom:20px;}
 
 .day.allowed {
   opacity:1;
-  cursor:pointer;
 }
 
 .day.disabled {
@@ -52,11 +55,23 @@ h2{margin-bottom:20px;}
   pointer-events:none;
 }
 
+/* blocks */
+.block{
+  border-bottom:1px solid #6b1f2b;
+  padding:16px 0;
+}
+
 /* tickets */
 .counter {
   display:flex;
   gap:12px;
   align-items:center;
+}
+
+.small-label{
+  font-size:13px;
+  margin-bottom:8px;
+  opacity:0.8;
 }
 
 button{
@@ -69,7 +84,6 @@ button{
   border:1px solid #6b1f2b;
   background:transparent;
   color:#6b1f2b;
-  cursor:pointer;
 }
 
 .primary-btn:hover{
@@ -87,7 +101,14 @@ button{
 
 <!-- CALENDAR -->
 <div class="block">
+
+  <div class="calendar-header">
+    <span id="month"></span>
+    <span id="year"></span>
+  </div>
+
   <div class="calendar" id="calendar"></div>
+
   <input type="hidden" name="date" id="date">
 </div>
 
@@ -100,12 +121,17 @@ button{
 
 <!-- TICKETS -->
 <div class="block">
+
+  <div class="small-label">Tickets</div>
+
   <div class="counter">
     <button type="button" id="minus">–</button>
     <span id="count">1</span>
     <button type="button" id="plus">+</button>
+
     <input type="hidden" name="tickets" id="tickets" value="1">
   </div>
+
 </div>
 
 <!-- EMAIL -->
@@ -123,10 +149,22 @@ const calendar = document.getElementById("calendar");
 const dateInput = document.getElementById("date");
 const time = document.getElementById("time");
 
-let selectedDate = null;
+const monthEl = document.getElementById("month");
+const yearEl = document.getElementById("year");
+
+let count = 1;
 
 // ----------------------
-// GENERATE NEXT 30 DAYS
+// HEADER (MONTH + YEAR)
+// ----------------------
+const now = new Date();
+const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+monthEl.innerText = months[now.getMonth()];
+yearEl.innerText = now.getFullYear();
+
+// ----------------------
+// CALENDAR
 // ----------------------
 function generateCalendar(){
   const today = new Date();
@@ -145,7 +183,6 @@ function generateCalendar(){
     el.dataset.date = d.toISOString().split("T")[0];
     el.dataset.day = dayNum;
 
-    // allow only sat/sun
     if(dayNum === 6 || dayNum === 0){
       el.classList.add("allowed");
     } else {
@@ -159,8 +196,7 @@ function generateCalendar(){
       document.querySelectorAll(".day").forEach(x=>x.classList.remove("active"));
       el.classList.add("active");
 
-      selectedDate = el.dataset.date;
-      dateInput.value = selectedDate;
+      dateInput.value = el.dataset.date;
 
       updateTime(dayNum);
     };
@@ -172,7 +208,7 @@ function generateCalendar(){
 generateCalendar();
 
 // ----------------------
-// TIME SLOTS
+// TIME
 // ----------------------
 function updateTime(day){
   time.innerHTML = '<option value="">Select time</option>';
@@ -196,23 +232,26 @@ function updateTime(day){
 }
 
 // ----------------------
-// TICKETS
+// TICKETS (1–10)
 // ----------------------
-let count = 1;
-
 document.getElementById("plus").onclick = () => {
-  count++;
-  document.getElementById("count").innerText = count;
-  document.getElementById("tickets").value = count;
+  if(count < 10){
+    count++;
+    update();
+  }
 };
 
 document.getElementById("minus").onclick = () => {
-  if(count>1){
+  if(count > 1){
     count--;
-    document.getElementById("count").innerText = count;
-    document.getElementById("tickets").value = count;
+    update();
   }
 };
+
+function update(){
+  document.getElementById("count").innerText = count;
+  document.getElementById("tickets").value = count;
+}
 
 // ----------------------
 // SUBMIT
@@ -223,7 +262,7 @@ document.getElementById("form").addEventListener("submit", async (e)=>{
   const payload = {
     date: dateInput.value,
     time: time.value,
-    tickets: document.getElementById("tickets").value,
+    tickets: count,
     email: document.getElementById("email").value
   };
 
