@@ -6,29 +6,23 @@
 <title>Booking</title>
 
 <style>
-/* ===== PAGE LAYOUT ===== */
 body{
   font-family: Helvetica, Arial, sans-serif;
   color:#6b1f2b;
   margin:0;
   min-height:100vh;
-
-  /* центрирование на desktop */
   display:flex;
   align-items:center;
   justify-content:center;
-
   background:#fff;
 }
 
-/* форма */
 form{
   width:100%;
   max-width:460px;
   padding:20px;
 }
 
-/* ===== BLOCKS ===== */
 .block{ margin-bottom:16px; }
 
 .label{
@@ -37,7 +31,6 @@ form{
   opacity:0.7;
 }
 
-/* ===== DAY SELECTOR ===== */
 .days{
   display:flex;
   gap:10px;
@@ -58,7 +51,6 @@ form{
   border-color:#6b1f2b;
 }
 
-/* ===== INPUT ===== */
 .input{
   width:100%;
   padding:12px;
@@ -68,7 +60,6 @@ form{
   box-sizing:border-box;
 }
 
-/* ===== TIME ===== */
 .chips{
   display:flex;
   gap:8px;
@@ -87,7 +78,6 @@ form{
   color:white;
 }
 
-/* ===== COUNTER ===== */
 .counter{
   display:flex;
   gap:10px;
@@ -103,7 +93,6 @@ button{
   font-size:18px;
 }
 
-/* ===== BUTTON ===== */
 .primary-btn{
   width:100%;
   padding:14px;
@@ -115,25 +104,17 @@ button{
   font-size:16px;
 }
 
-/* ===== MOBILE ===== */
-@media (max-width: 600px){
-
+@media (max-width:600px){
   body{
     align-items:flex-start;
     padding:16px;
   }
-
   form{
     max-width:100%;
     padding:0;
   }
-
   .days{
     flex-direction:column;
-  }
-
-  .chip{
-    font-size:14px;
   }
 }
 </style>
@@ -143,43 +124,35 @@ button{
 
 <form id="form">
 
-<!-- STEP 1 -->
 <div class="block">
   <div class="label">Choose day</div>
-
   <div class="days">
     <div class="day" id="sat">Saturday</div>
     <div class="day" id="sun">Sunday</div>
   </div>
 </div>
 
-<!-- STEP 2 -->
 <div class="block">
   <div class="label">Date</div>
   <input id="date" class="input" type="date" disabled>
 </div>
 
-<!-- TIME -->
 <div class="block">
   <div class="label">Time</div>
   <div class="chips" id="timeSlots"></div>
   <input type="hidden" id="time">
 </div>
 
-<!-- TICKETS -->
 <div class="block">
   <div class="label">Tickets (1–10)</div>
-
   <div class="counter">
     <button type="button" id="minus">-</button>
     <span id="count">1</span>
     <button type="button" id="plus">+</button>
   </div>
-
   <input type="hidden" id="tickets" value="1">
 </div>
 
-<!-- EMAIL -->
 <div class="block">
   <div class="label">Email</div>
   <input id="email" class="input" type="email">
@@ -222,17 +195,19 @@ function enableDate(dayType){
   selectedTime = null;
 
   dateInput.onchange = () => {
-    const d = new Date(dateInput.value);
-    const day = d.getDay();
+    if (!dateInput.value) return;
 
-    if(dayType === 6 && day !== 6){
-      alert("Only Saturday allowed");
+    // ✔ FIX: стабильный парсинг (без new Date(string))
+    const [y, m, d] = dateInput.value.split("-").map(Number);
+    const safeDate = new Date(y, m - 1, d);
+    const day = safeDate.getDay();
+
+    if (dayType === 6 && day !== 6) {
       dateInput.value = "";
       return;
     }
 
-    if(dayType === 0 && day !== 0){
-      alert("Only Sunday allowed");
+    if (dayType === 0 && day !== 0) {
       dateInput.value = "";
       return;
     }
