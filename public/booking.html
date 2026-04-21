@@ -10,74 +10,133 @@
 body{
   font-family: Helvetica, Arial, sans-serif;
   color:#6b1f2b;
-  max-width:420px;
+  max-width:460px;
   margin:40px auto;
 }
 
-.block{
-  border-bottom:1px solid #6b1f2b;
-  padding:16px 0;
+h2{
+  margin-bottom:20px;
 }
 
-.small-label{
+/* SECTION */
+.block{
+  margin-bottom:18px;
+}
+
+/* LABEL */
+.label{
   font-size:13px;
   margin-bottom:8px;
+  opacity:0.8;
 }
 
-/* tickets */
+/* INPUT */
+.input{
+  width:100%;
+  padding:12px;
+  border:1px solid #ddd;
+  border-radius:10px;
+  outline:none;
+}
+
+/* TIME CHIPS (Airbnb style) */
+.chips{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.chip{
+  padding:10px 14px;
+  border:1px solid #ddd;
+  border-radius:20px;
+  cursor:pointer;
+  font-size:14px;
+  transition:0.2s;
+}
+
+.chip:hover{
+  border-color:#6b1f2b;
+}
+
+.chip.active{
+  background:#6b1f2b;
+  color:white;
+  border-color:#6b1f2b;
+}
+
+/* TICKETS */
 .counter{
   display:flex;
-  gap:12px;
   align-items:center;
+  gap:12px;
 }
 
-button{
+.counter button{
+  width:34px;
+  height:34px;
+  border:1px solid #ddd;
+  border-radius:50%;
+  background:white;
   cursor:pointer;
-  background:none;
-  border:none;
   font-size:18px;
-  color:#6b1f2b;
 }
 
+/* BUTTON */
 .primary-btn{
   width:100%;
   padding:14px;
   margin-top:20px;
+  border-radius:10px;
   border:1px solid #6b1f2b;
-  background:transparent;
-  color:#6b1f2b;
+  background:#6b1f2b;
+  color:white;
   cursor:pointer;
 }
 
 .primary-btn:hover{
+  opacity:0.9;
+}
+
+/* Flatpickr Airbnb style */
+.flatpickr-calendar{
+  border-radius:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.08);
+}
+
+.flatpickr-day.selected{
   background:#6b1f2b;
-  color:white;
+  border-color:#6b1f2b;
+}
+
+.flatpickr-day.disabled{
+  opacity:0.2;
 }
 </style>
 </head>
 
 <body>
 
-<h2>Book Ticket</h2>
+<h2>Book your ticket</h2>
 
 <form id="form">
 
 <!-- DATE -->
 <div class="block">
-  <input type="text" id="date" placeholder="Select date"
-  style="width:100%;border:none;outline:none;">
+  <div class="label">Date</div>
+  <input type="text" id="date" class="input" placeholder="Select date">
 </div>
 
 <!-- TIME -->
 <div class="block">
-  <select id="time" required style="width:100%;border:none;outline:none;">
-    <option value="">Select time</option>
-  </select>
+  <div class="label">Time</div>
+  <div class="chips" id="timeSlots"></div>
+  <input type="hidden" id="time">
 </div>
 
 <!-- TICKETS -->
 <div class="block">
-  <div class="small-label">Tickets</div>
+  <div class="label">Guests</div>
 
   <div class="counter">
     <button type="button" id="minus">–</button>
@@ -90,11 +149,11 @@ button{
 
 <!-- EMAIL -->
 <div class="block">
-  <input type="email" id="email" placeholder="Email"
-  style="width:100%;border:none;outline:none;">
+  <div class="label">Email</div>
+  <input type="email" id="email" class="input" placeholder="you@email.com">
 </div>
 
-<button class="primary-btn" type="submit">Buy Ticket</button>
+<button class="primary-btn" type="submit">Reserve & Pay</button>
 
 </form>
 
@@ -103,102 +162,106 @@ button{
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-  // --------------------
-  // FLATPICKR INIT (ВАЖНО)
-  // --------------------
-  const dateInput = document.getElementById("date");
+let selectedTime = null;
 
-  flatpickr(dateInput, {
-    minDate: "today",
-    dateFormat: "Y-m-d",
-
-    disable: [
-      function(date) {
-        return (date.getDay() !== 6 && date.getDay() !== 0);
-      }
-    ],
-
-    onChange: function(selectedDates) {
-      if (!selectedDates.length) return;
-
-      const day = selectedDates[0].getDay();
-      updateTime(day);
+// --------------------
+// CALENDAR (Airbnb feel)
+// --------------------
+flatpickr("#date", {
+  minDate: "today",
+  dateFormat: "Y-m-d",
+  disable: [
+    function(date) {
+      return (date.getDay() !== 6 && date.getDay() !== 0);
     }
-  });
+  ],
+  onChange: function(selectedDates){
+    const d = selectedDates[0];
+    if(!d) return;
 
-  // --------------------
-  // TIME
-  // --------------------
-  function updateTime(day){
-    const time = document.getElementById("time");
-    time.innerHTML = '<option value="">Select time</option>';
-
-    if(day === 6){
-      add("10:00");
-      add("16:00");
-    }
-
-    if(day === 0){
-      add("14:00");
-    }
-
-    function add(t){
-      const o=document.createElement("option");
-      o.value=t;
-      o.textContent=t;
-      time.appendChild(o);
-    }
+    const day = d.getDay();
+    renderTimes(day);
   }
+});
 
-  // --------------------
-  // TICKETS (1–10)
-  // --------------------
-  let count = 1;
+// --------------------
+// TIME SLOTS (chips)
+// --------------------
+function renderTimes(day){
+  const container = document.getElementById("timeSlots");
+  container.innerHTML = "";
+  selectedTime = null;
 
-  document.getElementById("plus").onclick = () => {
-    if(count < 10){
-      count++;
-      update();
-    }
-  };
+  let slots = [];
 
-  document.getElementById("minus").onclick = () => {
-    if(count > 1){
-      count--;
-      update();
-    }
-  };
+  if(day === 6) slots = ["10:00", "16:00"];
+  if(day === 0) slots = ["14:00"];
 
-  function update(){
-    document.getElementById("count").innerText = count;
-    document.getElementById("tickets").value = count;
-  }
+  slots.forEach(t => {
+    const el = document.createElement("div");
+    el.className = "chip";
+    el.innerText = t;
 
-  // --------------------
-  // SUBMIT
-  // --------------------
-  document.getElementById("form").addEventListener("submit", async (e)=>{
-    e.preventDefault();
-
-    const payload = {
-      date: document.getElementById("date").value,
-      time: document.getElementById("time").value,
-      tickets: count,
-      email: document.getElementById("email").value
+    el.onclick = () => {
+      document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+      el.classList.add("active");
+      selectedTime = t;
+      document.getElementById("time").value = t;
     };
 
-    const res = await fetch("/api/create-checkout", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify(payload)
-    });
-
-    const data = await res.json();
-
-    if(data.url){
-      window.location.href = data.url;
-    }
+    container.appendChild(el);
   });
+}
+
+// --------------------
+// GUESTS (1–10)
+// --------------------
+let count = 1;
+
+document.getElementById("plus").onclick = () => {
+  if(count < 10){
+    count++;
+    update();
+  }
+};
+
+document.getElementById("minus").onclick = () => {
+  if(count > 1){
+    count--;
+    update();
+  }
+};
+
+function update(){
+  document.getElementById("count").innerText = count;
+  document.getElementById("tickets").value = count;
+}
+
+// --------------------
+// SUBMIT
+// --------------------
+document.getElementById("form").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+
+  const payload = {
+    date: document.getElementById("date").value,
+    time: selectedTime,
+    tickets: count,
+    email: document.getElementById("email").value
+  };
+
+  const res = await fetch("/api/create-checkout", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+
+  if(data.url){
+    window.location.href = data.url;
+  }
+});
 
 });
 </script>
