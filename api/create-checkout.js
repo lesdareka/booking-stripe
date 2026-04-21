@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     const { email, date, time, tickets } = req.body;
 
     const quantity = Number(tickets || 1);
-    const pricePerTicket = 2500;
+    const pricePerTicket = 3500;
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
