@@ -1,140 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Booking</title>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<style>
+body{
+  font-family: Helvetica, Arial, sans-serif;
+  max-width: 460px;
+  margin: 40px auto;
+  color:#6b1f2b;
+}
+
+.block{ margin-bottom:16px; }
+
+.label{ font-size:13px; margin-bottom:6px; opacity:0.7; }
+
+.input{
+  width:100%;
+  padding:12px;
+  border:1px solid #ddd;
+  border-radius:10px;
+}
+
+.chips{ display:flex; gap:8px; flex-wrap:wrap; }
+
+.chip{
+  padding:10px 14px;
+  border:1px solid #ddd;
+  border-radius:20px;
+  cursor:pointer;
+}
+
+.chip.active{
+  background:#6b1f2b;
+  color:white;
+}
+
+.counter{ display:flex; gap:10px; align-items:center; }
+
+button{
+  cursor:pointer;
+}
+
+.primary-btn{
+  width:100%;
+  padding:14px;
+  background:#6b1f2b;
+  color:white;
+  border:none;
+  border-radius:10px;
+  margin-top:20px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Book ticket</h2>
+
+<form id="form">
+
+<div class="block">
+  <div class="label">Date</div>
+  <input id="date" class="input" type="text" placeholder="Select date" readonly>
+</div>
+
+<div class="block">
+  <div class="label">Time</div>
+  <div class="chips" id="timeSlots"></div>
+  <input type="hidden" id="time">
+</div>
+
+<div class="block">
+  <div class="label">Tickets</div>
+  <div class="counter">
+    <button type="button" id="minus">-</button>
+    <span id="count">1</span>
+    <button type="button" id="plus">+</button>
+  </div>
+  <input type="hidden" id="tickets" value="1">
+</div>
+
+<div class="block">
+  <div class="label">Email</div>
+  <input id="email" class="input" type="email">
+</div>
+
+<button class="primary-btn" type="submit">Pay</button>
+
+</form>
+
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", () => {
 
 let selectedTime = null;
 let count = 1;
 
-// --------------------
-// CALENDAR (SAFE INIT)
-// --------------------
-function initCalendar() {
-  const dateInput = document.getElementById("date");
+// calendar
+flatpickr("#date", {
+  minDate:"today",
+  dateFormat:"Y-m-d",
+  disable:[
+    date => (date.getDay() !== 6 && date.getDay() !== 0)
+  ],
+  onChange:(dates)=>{
+    if(!dates.length) return;
+    renderTimes(dates[0].getDay());
+  }
+});
 
-  if (!dateInput) {
-    console.error("❌ #date input not found");
+// time
+function renderTimes(day){
+  const box = document.getElementById("timeSlots");
+  box.innerHTML = "";
+
+  let slots = [];
+  if(day===6) slots=["10:00","16:00"];
+  if(day===0) slots=["14:00"];
+
+  slots.forEach(t=>{
+    const d=document.createElement("div");
+    d.className="chip";
+    d.textContent=t;
+
+    d.onclick=()=>{
+      document.querySelectorAll(".chip").forEach(x=>x.classList.remove("active"));
+      d.classList.add("active");
+      selectedTime=t;
+      document.getElementById("time").value=t;
+    };
+
+    box.appendChild(d);
+  });
+}
+
+// tickets
+document.getElementById("plus").onclick=()=>{
+  if(count<10){
+    count++;
+    document.getElementById("count").textContent=count;
+    document.getElementById("tickets").value=count;
+  }
+};
+
+document.getElementById("minus").onclick=()=>{
+  if(count>1){
+    count--;
+    document.getElementById("count").textContent=count;
+    document.getElementById("tickets").value=count;
+  }
+};
+
+// submit
+document.getElementById("form").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+
+  if(!selectedTime){
+    alert("Select time");
     return;
   }
 
-  window.flatpickr(dateInput, {
-    minDate: "today",
-    dateFormat: "Y-m-d",
-
-    disable: [
-      function(date){
-        return (date.getDay() !== 6 && date.getDay() !== 0);
-      }
-    ],
-
-    onChange: function(selectedDates){
-      if (!selectedDates.length) return;
-      renderTimes(selectedDates[0].getDay());
-    }
-  });
-}
-
-initCalendar();
-
-// --------------------
-// TIME SLOTS
-// --------------------
-function renderTimes(day){
-  const container = document.getElementById("timeSlots");
-  if (!container) return;
-
-  container.innerHTML = "";
-  selectedTime = null;
-
-  let slots = [];
-
-  if (day === 6) slots = ["10:00", "16:00"];
-  if (day === 0) slots = ["14:00"];
-
-  slots.forEach(t => {
-    const el = document.createElement("div");
-    el.className = "chip";
-    el.innerText = t;
-
-    el.onclick = () => {
-      document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
-      el.classList.add("active");
-      selectedTime = t;
-      document.getElementById("time").value = t;
-    };
-
-    container.appendChild(el);
-  });
-}
-
-// --------------------
-// TICKETS (1–10)
-// --------------------
-function updateTicketsUI(){
-  const countEl = document.getElementById("count");
-  const ticketsEl = document.getElementById("tickets");
-
-  if (countEl) countEl.innerText = count;
-  if (ticketsEl) ticketsEl.value = count;
-}
-
-const plus = document.getElementById("plus");
-const minus = document.getElementById("minus");
-
-if (plus) {
-  plus.onclick = () => {
-    if (count < 10) {
-      count++;
-      updateTicketsUI();
-    }
-  };
-}
-
-if (minus) {
-  minus.onclick = () => {
-    if (count > 1) {
-      count--;
-      updateTicketsUI();
-    }
-  };
-}
-
-updateTicketsUI();
-
-// --------------------
-// SUBMIT
-// --------------------
-const form = document.getElementById("form");
-
-if (form) {
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    if (!selectedTime) {
-      alert("Please select time");
-      return;
-    }
-
-    const payload = {
-      date: document.getElementById("date")?.value,
+  const res = await fetch("/api/create-checkout",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({
+      date: document.getElementById("date").value,
       time: selectedTime,
       tickets: count,
-      email: document.getElementById("email")?.value
-    };
-
-    const res = await fetch("/api/create-checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await res.json();
-
-    if (data.url) {
-      window.location.href = data.url;
-    }
+      email: document.getElementById("email").value
+    })
   });
-}
+
+  const data = await res.json();
+  if(data.url) window.location.href=data.url;
+});
 
 });
 </script>
+
+</body>
+</html>
