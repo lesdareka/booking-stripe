@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Booking</title>
+</head>
+
+<body style="font-family:Helvetica;color:#6b1f2b;max-width:420px;margin:40px auto;">
+
+<h2>Book Ticket</h2>
+
+<form id="form">
+
+  <!-- DATE -->
+  <div style="border-bottom:1px solid #6b1f2b;padding:16px 0;">
+    <input id="date" type="date" required style="width:100%;border:none;outline:none;">
+  </div>
+
+  <!-- TIME -->
+  <div style="border-bottom:1px solid #6b1f2b;padding:16px 0;">
+    <select id="time" required style="width:100%;border:none;outline:none;">
+      <option value="">Select time</option>
+    </select>
+  </div>
+
+  <!-- EMAIL -->
+  <div style="border-bottom:1px solid #6b1f2b;padding:16px 0;">
+    <input id="email" type="email" placeholder="Email" required style="width:100%;border:none;outline:none;">
+  </div>
+
+  <button type="submit" style="margin-top:20px;width:100%;padding:12px;border:1px solid #6b1f2b;background:none;">
+    Pay
+  </button>
+
+</form>
+
+<script>
+const dateInput = document.getElementById("date");
+const timeSelect = document.getElementById("time");
+
+dateInput.addEventListener("change", () => {
+  const d = new Date(dateInput.value);
+  const day = d.getDay();
+
+  timeSelect.innerHTML = '<option value="">Select time</option>';
+
+  if (day === 6) {
+    ["10:00","16:00"].forEach(t => add(t));
+  }
+
+  if (day === 0) {
+    add("14:00");
+  }
+
+  function add(t){
+    const o=document.createElement("option");
+    o.value=t;o.textContent=t;
+    timeSelect.appendChild(o);
+  }
+});
+
+document.getElementById("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const payload = {
+    date: dateInput.value,
+    time: timeSelect.value,
+    email: document.getElementById("email").value,
+    tickets: 1
+  };
+
+  const res = await fetch("/api/create-checkout", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+
+  if (data.url) {
+    window.location.href = data.url;
+  } else {
+    alert("Error");
+  }
+});
+</script>
+
+</body>
+</html>
