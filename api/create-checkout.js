@@ -10,9 +10,6 @@ export default async function handler(req, res) {
   try {
     const { email, date, time, tickets } = req.body;
 
-    const quantity = Number(tickets || 1);
-    const pricePerTicket = 3500;
-
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       customer_email: email,
@@ -23,27 +20,28 @@ export default async function handler(req, res) {
             currency: "eur",
             product_data: {
               name: "Event Ticket",
-              description: `${date} • ${time}`,
+              description: `Date: ${date} | Time: ${time}`,
             },
-            unit_amount: pricePerTicket,
+            unit_amount: 2500,
           },
-          quantity,
+          quantity: Number(tickets || 1),
         },
       ],
 
       metadata: {
         date,
         time,
-        tickets: quantity,
+        tickets,
+        email
       },
 
-     success_url: "https://booking-stripe-coral.vercel.app/?success=true",
-cancel_url: "https://booking-stripe-coral.vercel.app/?canceled=true",
+      success_url: "https://your-domain.com/success",
+      cancel_url: "https://your-domain.com/cancel",
     });
 
-    res.status(200).json({ url: session.url });
+    return res.status(200).json({ url: session.url });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
