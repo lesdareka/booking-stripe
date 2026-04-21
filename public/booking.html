@@ -4,42 +4,52 @@
 document.addEventListener("DOMContentLoaded", function () {
 
 let selectedTime = null;
+let count = 1;
 
 // --------------------
-// CALENDAR (ONLY ONCE)
+// CALENDAR (SAFE INIT)
 // --------------------
-const dateInput = document.getElementById("date");
+function initCalendar() {
+  const dateInput = document.getElementById("date");
 
-flatpickr(dateInput, {
-  minDate: "today",
-  dateFormat: "Y-m-d",
-
-  disable: [
-    function(date){
-      return (date.getDay() !== 6 && date.getDay() !== 0);
-    }
-  ],
-
-  onChange: function(selectedDates){
-    if(!selectedDates.length) return;
-
-    const day = selectedDates[0].getDay();
-    renderTimes(day);
+  if (!dateInput) {
+    console.error("❌ #date input not found");
+    return;
   }
-});
+
+  window.flatpickr(dateInput, {
+    minDate: "today",
+    dateFormat: "Y-m-d",
+
+    disable: [
+      function(date){
+        return (date.getDay() !== 6 && date.getDay() !== 0);
+      }
+    ],
+
+    onChange: function(selectedDates){
+      if (!selectedDates.length) return;
+      renderTimes(selectedDates[0].getDay());
+    }
+  });
+}
+
+initCalendar();
 
 // --------------------
-// TIME
+// TIME SLOTS
 // --------------------
 function renderTimes(day){
   const container = document.getElementById("timeSlots");
+  if (!container) return;
+
   container.innerHTML = "";
   selectedTime = null;
 
   let slots = [];
 
-  if(day === 6) slots = ["10:00", "16:00"];
-  if(day === 0) slots = ["14:00"];
+  if (day === 6) slots = ["10:00", "16:00"];
+  if (day === 0) slots = ["14:00"];
 
   slots.forEach(t => {
     const el = document.createElement("div");
@@ -58,54 +68,73 @@ function renderTimes(day){
 }
 
 // --------------------
-// TICKETS
+// TICKETS (1–10)
 // --------------------
-let count = 1;
+function updateTicketsUI(){
+  const countEl = document.getElementById("count");
+  const ticketsEl = document.getElementById("tickets");
 
-document.getElementById("plus").onclick = () => {
-  if(count < 10){
-    count++;
-    update();
-  }
-};
-
-document.getElementById("minus").onclick = () => {
-  if(count > 1){
-    count--;
-    update();
-  }
-};
-
-function update(){
-  document.getElementById("count").innerText = count;
-  document.getElementById("tickets").value = count;
+  if (countEl) countEl.innerText = count;
+  if (ticketsEl) ticketsEl.value = count;
 }
+
+const plus = document.getElementById("plus");
+const minus = document.getElementById("minus");
+
+if (plus) {
+  plus.onclick = () => {
+    if (count < 10) {
+      count++;
+      updateTicketsUI();
+    }
+  };
+}
+
+if (minus) {
+  minus.onclick = () => {
+    if (count > 1) {
+      count--;
+      updateTicketsUI();
+    }
+  };
+}
+
+updateTicketsUI();
 
 // --------------------
 // SUBMIT
 // --------------------
-document.getElementById("form").addEventListener("submit", async (e)=>{
-  e.preventDefault();
+const form = document.getElementById("form");
 
-  const payload = {
-    date: document.getElementById("date").value,
-    time: selectedTime,
-    tickets: count,
-    email: document.getElementById("email").value
-  };
+if (form) {
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-  const res = await fetch("/api/create-checkout", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify(payload)
+    if (!selectedTime) {
+      alert("Please select time");
+      return;
+    }
+
+    const payload = {
+      date: document.getElementById("date")?.value,
+      time: selectedTime,
+      tickets: count,
+      email: document.getElementById("email")?.value
+    };
+
+    const res = await fetch("/api/create-checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (data.url) {
+      window.location.href = data.url;
+    }
   });
-
-  const data = await res.json();
-
-  if(data.url){
-    window.location.href = data.url;
-  }
-});
+}
 
 });
 </script>
