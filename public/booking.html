@@ -41,9 +41,7 @@ body{
 
 .counter{ display:flex; gap:10px; align-items:center; }
 
-button{
-  cursor:pointer;
-}
+button{ cursor:pointer; }
 
 .primary-btn{
   width:100%;
@@ -102,7 +100,7 @@ let selectedTime = null;
 let count = 1;
 
 // calendar
-flatpickr("#date-input", {
+flatpickr("#date", {
   minDate:"today",
   dateFormat:"Y-m-d",
   disable:[
