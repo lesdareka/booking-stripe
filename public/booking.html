@@ -3,84 +3,148 @@
 <head>
 <meta charset="UTF-8">
 <title>Booking</title>
+
+<style>
+body {
+  font-family: Helvetica, Arial, sans-serif;
+  color:#6b1f2b;
+  max-width:420px;
+  margin:40px auto;
+}
+
+.block {
+  border-bottom:1px solid #6b1f2b;
+  padding:16px 0;
+}
+
+.dates {
+  display:flex;
+  gap:10px;
+}
+
+.day {
+  flex:1;
+  padding:12px;
+  border:1px solid #6b1f2b;
+  text-align:center;
+  cursor:pointer;
+  opacity:0.4;
+  transition:0.2s;
+}
+
+.day.active {
+  opacity:1;
+  background:#6b1f2b;
+  color:white;
+}
+
+.day:hover {
+  opacity:0.8;
+}
+
+button {
+  width:100%;
+  padding:14px;
+  margin-top:20px;
+  border:1px solid #6b1f2b;
+  background:transparent;
+  color:#6b1f2b;
+  cursor:pointer;
+}
+
+button:hover {
+  background:#6b1f2b;
+  color:white;
+}
+</style>
 </head>
 
-<body style="font-family:Helvetica;color:#6b1f2b;max-width:420px;margin:40px auto;">
+<body>
 
 <h2>Book Ticket</h2>
 
 <form id="form">
 
-  <!-- DATE -->
-  <div style="border-bottom:1px solid #6b1f2b;padding:16px 0;">
-    <input id="date" type="date" required style="width:100%;border:none;outline:none;">
+  <!-- DAYS -->
+  <div class="block">
+    <div class="dates">
+      <div class="day" data-day="6">Saturday</div>
+      <div class="day" data-day="0">Sunday</div>
+    </div>
+    <input type="hidden" id="day" name="day">
   </div>
 
   <!-- TIME -->
-  <div style="border-bottom:1px solid #6b1f2b;padding:16px 0;">
-    <select id="time" required style="width:100%;border:none;outline:none;">
+  <div class="block">
+    <select id="time" name="time" required style="width:100%;border:none;">
       <option value="">Select time</option>
     </select>
   </div>
 
   <!-- EMAIL -->
-  <div style="border-bottom:1px solid #6b1f2b;padding:16px 0;">
-    <input id="email" type="email" placeholder="Email" required style="width:100%;border:none;outline:none;">
+  <div class="block">
+    <input id="email" type="email" name="email" placeholder="Email"
+    style="width:100%;border:none;outline:none;">
   </div>
 
-  <button type="submit" style="margin-top:20px;width:100%;padding:12px;border:1px solid #6b1f2b;background:none;">
-    Pay
-  </button>
+  <button type="submit">Buy Ticket</button>
 
 </form>
 
 <script>
-const dateInput = document.getElementById("date");
-const timeSelect = document.getElementById("time");
+const days = document.querySelectorAll(".day");
+const time = document.getElementById("time");
+const hiddenDay = document.getElementById("day");
 
-dateInput.addEventListener("change", () => {
-  const d = new Date(dateInput.value);
-  const day = d.getDay();
+days.forEach(d => {
+  d.onclick = () => {
 
-  timeSelect.innerHTML = '<option value="">Select time</option>';
+    days.forEach(x => x.classList.remove("active"));
+    d.classList.add("active");
 
-  if (day === 6) {
-    ["10:00","16:00"].forEach(t => add(t));
-  }
+    const day = d.dataset.day;
+    hiddenDay.value = day;
 
-  if (day === 0) {
-    add("14:00");
-  }
+    time.innerHTML = '<option value="">Select time</option>';
 
-  function add(t){
-    const o=document.createElement("option");
-    o.value=t;o.textContent=t;
-    timeSelect.appendChild(o);
-  }
+    if (day == "6") {
+      add("10:00");
+      add("16:00");
+    }
+
+    if (day == "0") {
+      add("14:00");
+    }
+  };
 });
+
+function add(t){
+  const o = document.createElement("option");
+  o.value = t;
+  o.textContent = t;
+  time.appendChild(o);
+}
 
 document.getElementById("form").addEventListener("submit", async (e) => {
   e.preventDefault();
 
   const payload = {
-    date: dateInput.value,
-    time: timeSelect.value,
+    date: hiddenDay.value,
+    time: time.value,
     email: document.getElementById("email").value,
     tickets: 1
   };
 
   const res = await fetch("/api/create-checkout", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(payload)
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(payload)
   });
 
   const data = await res.json();
 
-  if (data.url) {
+  if(data.url){
     window.location.href = data.url;
-  } else {
-    alert("Error");
   }
 });
 </script>
