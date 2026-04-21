@@ -12,10 +12,12 @@ export default async function handler(req, res) {
       const session = event.data.object;
 
       const email = session.customer_email;
+      const date = session.metadata?.date;
+      const time = session.metadata?.time;
+      const tickets = session.metadata?.tickets;
 
-      console.log("Paid user:", email);
+      console.log("Paid user:", email, date, time, tickets);
 
-      // SEND TO MAILCHIMP
       const response = await fetch(
         `https://${process.env.MAILCHIMP_SERVER}.api.mailchimp.com/3.0/lists/${process.env.MAILCHIMP_AUDIENCE_ID}/members`,
         {
@@ -27,6 +29,15 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             email_address: email,
             status: "subscribed",
+
+            merge_fields: {
+              FNAME: "",
+              LNAME: "",
+              MMERGE7: date,
+              MMERGE8: time,
+            },
+
+            tags: [`tickets_${tickets}`],
           }),
         }
       );
