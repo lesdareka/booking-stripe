@@ -2,21 +2,42 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Booking</title>
 
 <style>
+/* ===== PAGE LAYOUT ===== */
 body{
   font-family: Helvetica, Arial, sans-serif;
-  max-width:460px;
-  margin:40px auto;
   color:#6b1f2b;
+  margin:0;
+  min-height:100vh;
+
+  /* центрирование на desktop */
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  background:#fff;
 }
 
+/* форма */
+form{
+  width:100%;
+  max-width:460px;
+  padding:20px;
+}
+
+/* ===== BLOCKS ===== */
 .block{ margin-bottom:16px; }
 
-.label{ font-size:13px; margin-bottom:6px; opacity:0.7; }
+.label{
+  font-size:13px;
+  margin-bottom:6px;
+  opacity:0.7;
+}
 
-/* day selector */
+/* ===== DAY SELECTOR ===== */
 .days{
   display:flex;
   gap:10px;
@@ -37,16 +58,22 @@ body{
   border-color:#6b1f2b;
 }
 
-/* date */
+/* ===== INPUT ===== */
 .input{
   width:100%;
   padding:12px;
   border:1px solid #ddd;
   border-radius:10px;
+  font-size:16px;
+  box-sizing:border-box;
 }
 
-/* time */
-.chips{ display:flex; gap:8px; flex-wrap:wrap; }
+/* ===== TIME ===== */
+.chips{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
 
 .chip{
   padding:10px 14px;
@@ -60,11 +87,23 @@ body{
   color:white;
 }
 
-/* tickets */
-.counter{ display:flex; gap:10px; align-items:center; }
+/* ===== COUNTER ===== */
+.counter{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
 
-button{ cursor:pointer; }
+button{
+  cursor:pointer;
+  min-width:44px;
+  min-height:44px;
+  background:none;
+  border:none;
+  font-size:18px;
+}
 
+/* ===== BUTTON ===== */
 .primary-btn{
   width:100%;
   padding:14px;
@@ -73,17 +112,38 @@ button{ cursor:pointer; }
   border:none;
   border-radius:10px;
   margin-top:20px;
+  font-size:16px;
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 600px){
+
+  body{
+    align-items:flex-start;
+    padding:16px;
+  }
+
+  form{
+    max-width:100%;
+    padding:0;
+  }
+
+  .days{
+    flex-direction:column;
+  }
+
+  .chip{
+    font-size:14px;
+  }
 }
 </style>
 </head>
 
 <body>
 
-<h2>Book ticket</h2>
-
 <form id="form">
 
-<!-- STEP 1: DAY -->
+<!-- STEP 1 -->
 <div class="block">
   <div class="label">Choose day</div>
 
@@ -93,7 +153,7 @@ button{ cursor:pointer; }
   </div>
 </div>
 
-<!-- STEP 2: DATE -->
+<!-- STEP 2 -->
 <div class="block">
   <div class="label">Date</div>
   <input id="date" class="input" type="date" disabled>
@@ -136,7 +196,7 @@ let count = 1;
 
 const dateInput = document.getElementById("date");
 
-// STEP 1: choose day
+// DAY SELECT
 document.getElementById("sat").onclick = () => {
   selectDay("sat");
   enableDate(6);
@@ -152,7 +212,7 @@ function selectDay(type){
   document.getElementById(type).classList.add("active");
 }
 
-// enable date input with constraint
+// ENABLE DATE
 function enableDate(dayType){
   selectedDay = dayType;
 
@@ -181,7 +241,7 @@ function enableDate(dayType){
   };
 }
 
-// time slots
+// TIME
 function renderTimes(day){
   const box = document.getElementById("timeSlots");
   box.innerHTML = "";
@@ -207,7 +267,7 @@ function renderTimes(day){
   });
 }
 
-// tickets
+// TICKETS
 document.getElementById("plus").onclick=()=>{
   if(count<10){
     count++;
@@ -224,7 +284,7 @@ document.getElementById("minus").onclick=()=>{
   }
 };
 
-// submit
+// SUBMIT
 document.getElementById("form").addEventListener("submit", async (e)=>{
   e.preventDefault();
 
