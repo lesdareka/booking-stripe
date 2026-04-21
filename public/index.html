@@ -1,17 +1,144 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Booking</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<title>Booking</title>
 </head>
-<body>
 
-<h1>Booking Page</h1>
+<body style="font-family:Helvetica, Arial, sans-serif;color:#6b1f2b;">
 
-<form action="/api/create-checkout" method="POST">
-  <input name="email" placeholder="Email" />
-  <button type="submit">Buy</button>
+<form id="booking-form" style="max-width:420px;margin:40px auto;">
+
+  <!-- DATE -->
+  <div style="border-bottom:1px solid #6b1f2b;padding:18px 0;">
+    <input type="text" id="date-input" name="date" placeholder="Select date" required
+      style="border:none;width:100%;outline:none;font-size:16px;">
+  </div>
+
+  <!-- TIME -->
+  <div style="border-bottom:1px solid #6b1f2b;padding:18px 0;">
+    <select name="time" required style="border:none;width:100%;font-size:16px;">
+      <option value="">Select time</option>
+    </select>
+  </div>
+
+  <!-- TICKETS -->
+  <div style="border-bottom:1px solid #6b1f2b;padding:18px 0;display:flex;justify-content:space-between;">
+    <span>Tickets</span>
+
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button type="button" id="minus">–</button>
+      <span id="count">1</span>
+      <button type="button" id="plus">+</button>
+    </div>
+
+    <input type="hidden" name="tickets" id="tickets" value="1">
+  </div>
+
+  <!-- EMAIL -->
+  <div style="border-bottom:1px solid #6b1f2b;padding:18px 0;">
+    <input type="email" name="email" placeholder="Email" required
+      style="border:none;width:100%;outline:none;font-size:16px;">
+  </div>
+
+  <!-- BUTTON -->
+  <button type="submit"
+    style="margin-top:28px;width:100%;padding:14px;border:1px solid #6b1f2b;background:transparent;">
+    Buy ticket
+  </button>
+
 </form>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script>
+// DATE
+flatpickr("#date-input", {
+  dateFormat: "Y-m-d",
+  minDate: "today",
+  disable: [
+    function(date) {
+      return (date.getDay() !== 6 && date.getDay() !== 0);
+    }
+  ],
+  onChange: function(selectedDates) {
+    updateTimeOptions(selectedDates[0]);
+  }
+});
+
+// TIME
+function updateTimeOptions(date) {
+  const select = document.querySelector('select[name="time"]');
+  select.innerHTML = '<option value="">Select time</option>';
+
+  if (!date) return;
+
+  if (date.getDay() === 6) {
+    addOption(select, "10:00");
+    addOption(select, "16:00");
+  }
+
+  if (date.getDay() === 0) {
+    addOption(select, "14:00");
+  }
+}
+
+function addOption(select, value) {
+  const option = document.createElement("option");
+  option.value = value;
+  option.textContent = value;
+  select.appendChild(option);
+}
+
+// TICKETS
+let count = 1;
+
+document.getElementById('plus').onclick = () => {
+  if (count < 10) {
+    count++;
+    update();
+  }
+};
+
+document.getElementById('minus').onclick = () => {
+  if (count > 1) {
+    count--;
+    update();
+  }
+};
+
+function update() {
+  document.getElementById('count').innerText = count;
+  document.getElementById('tickets').value = count;
+}
+
+// SUBMIT → STRIPE
+document.getElementById('booking-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const formData = Object.fromEntries(new FormData(this));
+
+  const response = await fetch("/api/create-checkout", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(formData)
+  });
+
+  const data = await response.json();
+
+  if (data.url) {
+    window.location.href = data.url;
+  } else {
+    alert("Payment error");
+  }
+});
+</script>
 
 </body>
 </html>
