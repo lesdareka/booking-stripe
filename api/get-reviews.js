@@ -1,3 +1,6 @@
+console.log("URL:", process.env.SUPABASE_URL);
+console.log("KEY:", process.env.SUPABASE_KEY);
+
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -13,4 +16,3 @@ export default async function handler(req, res) {
 
   res.status(200).json(data);
 }
-console.log("ENV:", process.env.SUPABASE_URL);
