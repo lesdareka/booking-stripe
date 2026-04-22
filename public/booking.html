@@ -104,6 +104,19 @@ button{
   font-size:16px;
 }
 
+.policy{
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  font-size:13px;
+  line-height:1.4;
+}
+
+.policy a{
+  color:#6b1f2b;
+  text-decoration:underline;
+}
+
 @media (max-width:600px){
   body{
     align-items:flex-start;
@@ -158,6 +171,19 @@ button{
   <input id="email" class="input" type="email">
 </div>
 
+<!-- ✔ POLICY -->
+<div class="block policy">
+  <input type="checkbox" id="policy">
+
+  <label for="policy">
+    I understand the 
+    <a href="https://remussance.com/refund_policy" target="_blank">
+      cancellation policy
+    </a>
+    for guided tours
+  </label>
+</div>
+
 <button class="primary-btn" type="submit">Pay</button>
 
 </form>
@@ -197,7 +223,6 @@ function enableDate(dayType){
   dateInput.onchange = () => {
     if (!dateInput.value) return;
 
-    // ✔ FIX: стабильный парсинг (без new Date(string))
     const [y, m, d] = dateInput.value.split("-").map(Number);
     const safeDate = new Date(y, m - 1, d);
     const day = safeDate.getDay();
@@ -265,6 +290,12 @@ document.getElementById("form").addEventListener("submit", async (e)=>{
 
   if(!selectedDay || !dateInput.value || !selectedTime){
     alert("Fill all fields");
+    return;
+  }
+
+  // ✔ ПРОВЕРКА POLICY
+  if(!document.getElementById("policy").checked){
+    alert("Please accept the cancellation policy");
     return;
   }
 
