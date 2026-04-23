@@ -61,7 +61,7 @@ export default async function handler(req, res) {
         tickets
       },
 
-      success_url: "https://booking-stripe-coral.vercel.app/success.html",
+      success_url: "https://remussance.com/success",
       cancel_url: "https://booking-stripe-coral.vercel.app/booking.html",
     });
 
