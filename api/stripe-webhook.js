@@ -53,7 +53,7 @@ export default async function handler(req, res) {
               MMERGE7: date,
               MMERGE8: time,
             },
-            tags: [`tickets_${tickets}`],
+           tags: ["paid_booking"]
           }),
         }
       );
