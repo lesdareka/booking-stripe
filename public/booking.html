@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -131,6 +132,7 @@ button{
   }
 }
 </style>
+
 </head>
 
 <body>
@@ -171,10 +173,8 @@ button{
   <input id="email" class="input" type="email">
 </div>
 
-<!-- ✔ POLICY -->
 <div class="block policy">
   <input type="checkbox" id="policy">
-
   <label for="policy">
     I understand the 
     <a href="https://remussance.com/refund_policy" target="_blank">
@@ -219,26 +219,29 @@ function enableDate(dayType){
   dateInput.value = "";
   document.getElementById("timeSlots").innerHTML = "";
   selectedTime = null;
+}
 
-  dateInput.onchange = () => {
-    if (!dateInput.value) return;
+// ✅ СТАБИЛЬНЫЙ ОБРАБОТЧИК ДАТЫ (фикс мобилки)
+dateInput.addEventListener("input", handleDateChange);
 
-    const [y, m, d] = dateInput.value.split("-").map(Number);
-    const safeDate = new Date(y, m - 1, d);
-    const day = safeDate.getDay();
+function handleDateChange(){
+  if (!dateInput.value || selectedDay === null) return;
 
-    if (dayType === 6 && day !== 6) {
-      dateInput.value = "";
-      return;
-    }
+  const [y, m, d] = dateInput.value.split("-").map(Number);
+  const safeDate = new Date(y, m - 1, d);
+  const day = safeDate.getDay();
 
-    if (dayType === 0 && day !== 0) {
-      dateInput.value = "";
-      return;
-    }
+  if (selectedDay === 6 && day !== 6) {
+    dateInput.value = "";
+    return;
+  }
 
-    renderTimes(day);
-  };
+  if (selectedDay === 0 && day !== 0) {
+    dateInput.value = "";
+    return;
+  }
+
+  renderTimes(day);
 }
 
 // TIME
@@ -288,12 +291,17 @@ document.getElementById("minus").onclick=()=>{
 document.getElementById("form").addEventListener("submit", async (e)=>{
   e.preventDefault();
 
+  console.log({
+    selectedDay,
+    date: dateInput.value,
+    selectedTime
+  });
+
   if(!selectedDay || !dateInput.value || !selectedTime){
     alert("Fill all fields");
     return;
   }
 
-  // ✔ ПРОВЕРКА POLICY
   if(!document.getElementById("policy").checked){
     alert("Please accept the cancellation policy");
     return;
