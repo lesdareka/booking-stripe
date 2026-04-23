@@ -26,7 +26,13 @@ export default async function handler(req, res) {
 
       console.log("Paid user:", email, date, time, tickets);
 
-      // ✔ 1. MAILCHIMP (оставляем как есть)
+      // ❗ 1. ЗАЩИТА: если email нет — выходим
+      if (!email) {
+        console.error("No email in session");
+        return res.status(200).json({ received: true });
+      }
+
+      // ✔ 2. MAILCHIMP
       const subscriberHash = crypto
         .createHash("md5")
         .update(email.toLowerCase())
@@ -52,18 +58,31 @@ export default async function handler(req, res) {
         }
       );
 
-      // ✔ 2. SUPABASE (ЭТОГО НЕ БЫЛО)
-      const { error } = await supabase.from("bookings").insert([
-        {
-          email,
-          date,
-          time,
-          tickets: Number(tickets),
-        },
-      ]);
+      // ❗ 3. ПРОВЕРКА ДУБЛЯ
+      const { data: existing } = await supabase
+        .from("bookings")
+        .select("*")
+        .eq("email", email)
+        .eq("date", date)
+        .eq("time", time);
 
-      if (error) {
-        console.error("SUPABASE ERROR:", error);
+      if (!existing || existing.length === 0) {
+        const { error } = await supabase.from("bookings").insert([
+          {
+            email,
+            date,
+            time,
+            tickets: Number(tickets),
+          },
+        ]);
+
+        if (error) {
+          console.error("SUPABASE ERROR:", error);
+        } else {
+          console.log("Booking saved");
+        }
+      } else {
+        console.log("Duplicate booking skipped");
       }
     }
 
