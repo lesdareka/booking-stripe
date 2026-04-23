@@ -263,7 +263,7 @@ function renderTimes(day){
       document.querySelectorAll(".chip").forEach(c=>c.classList.remove("active"));
       el.classList.add("active");
       selectedTime=t;
-      document.getElementById("time").value=t;
+      document.getElementById("time").setAttribute("value", t);
     };
 
     box.appendChild(el);
@@ -297,9 +297,12 @@ document.getElementById("form").addEventListener("submit", async (e)=>{
     selectedTime
   });
 
-  if(!selectedDay || !dateInput.value || !selectedTime){
-    alert("Fill all fields");
-    return;
+const timeValue = document.getElementById("time").value;
+const emailValue = document.getElementById("email").value;
+
+if(!selectedDay || !dateInput.value || !timeValue || !emailValue){
+  alert("Fill all fields");
+  return;
   }
 
   if(!document.getElementById("policy").checked){
