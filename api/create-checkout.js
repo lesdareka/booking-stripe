@@ -48,7 +48,7 @@ export default async function handler(req, res) {
               name: "Event Ticket",
               description: `${date} | ${time}`,
             },
-            unit_amount: 100,
+            unit_amount: 3500,
           },
           quantity: Number(tickets || 1),
         },
