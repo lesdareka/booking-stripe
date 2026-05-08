@@ -300,7 +300,7 @@ document.getElementById("form").addEventListener("submit", async (e)=>{
 const timeValue = document.getElementById("time").value;
 const emailValue = document.getElementById("email").value;
 
-if(!selectedDay || !dateInput.value || !timeValue || !emailValue){
+if(selectedDay === null || !dateInput.value || !timeValue || !emailValue){
   alert("Fill all fields");
   return;
   }
