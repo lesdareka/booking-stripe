@@ -263,7 +263,7 @@ function renderTimes(day){
       document.querySelectorAll(".chip").forEach(c=>c.classList.remove("active"));
       el.classList.add("active");
       selectedTime=t;
-      document.getElementById("time").setAttribute("value", t);
+      document.getElementById("time").value = t;
     };
 
     box.appendChild(el);
@@ -291,18 +291,16 @@ document.getElementById("minus").onclick=()=>{
 document.getElementById("form").addEventListener("submit", async (e)=>{
   e.preventDefault();
 
-  console.log({
-    selectedDay,
-    date: dateInput.value,
-    selectedTime
-  });
+  const emailValue = document.getElementById("email").value.trim();
 
-const timeValue = document.getElementById("time").value;
-const emailValue = document.getElementById("email").value;
-
-if(selectedDay === null || !dateInput.value || !timeValue || !emailValue){
-  alert("Fill all fields");
-  return;
+  if(
+    selectedDay === null ||
+    !dateInput.value ||
+    !selectedTime ||
+    !emailValue
+  ){
+    alert("Fill all fields");
+    return;
   }
 
   if(!document.getElementById("policy").checked){
@@ -310,17 +308,35 @@ if(selectedDay === null || !dateInput.value || !timeValue || !emailValue){
     return;
   }
 
-  const res = await fetch("/api/create-checkout",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({
-      date: dateInput.value,
-      time: selectedTime,
-      tickets: count,
-      email: document.getElementById("email").value
-    })
-  });
+  try {
 
+    const res = await fetch("/api/create-checkout",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body: JSON.stringify({
+        date: dateInput.value,
+        time: selectedTime,
+        tickets: count,
+        email: emailValue
+      })
+    });
+
+    const data = await res.json();
+
+    if(data.url){
+      window.location.href = data.url;
+    } else {
+      console.error(data);
+      alert("Unable to create Stripe checkout");
+    }
+
+  } catch(err){
+    console.error(err);
+    alert("Connection error");
+  }
+});
   const data = await res.json();
   if(data.url) window.location.href=data.url;
 });
