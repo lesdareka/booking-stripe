@@ -321,8 +321,14 @@ if(selectedDay === null || !dateInput.value || !timeValue || !emailValue){
     })
   });
 
-  const data = await res.json();
-  if(data.url) window.location.href=data.url;
+ const data = await res.json();
+
+if (!res.ok) {
+  alert(data.error || "No spots left");
+  return;
+}
+
+window.location.href = data.url;
 });
 </script>
 
