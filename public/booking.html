@@ -291,16 +291,18 @@ document.getElementById("minus").onclick=()=>{
 document.getElementById("form").addEventListener("submit", async (e)=>{
   e.preventDefault();
 
-  const emailValue = document.getElementById("email").value.trim();
+  console.log({
+    selectedDay,
+    date: dateInput.value,
+    selectedTime
+  });
 
-  if(
-    selectedDay === null ||
-    !dateInput.value ||
-    !selectedTime ||
-    !emailValue
-  ){
-    alert("Fill all fields");
-    return;
+const timeValue = document.getElementById("time").value;
+const emailValue = document.getElementById("email").value;
+
+if(selectedDay === null || !dateInput.value || !timeValue || !emailValue){
+  alert("Fill all fields");
+  return;
   }
 
   if(!document.getElementById("policy").checked){
@@ -308,35 +310,17 @@ document.getElementById("form").addEventListener("submit", async (e)=>{
     return;
   }
 
-  try {
+  const res = await fetch("/api/create-checkout",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({
+      date: dateInput.value,
+      time: selectedTime,
+      tickets: count,
+      email: document.getElementById("email").value
+    })
+  });
 
-    const res = await fetch("/api/create-checkout",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json"
-      },
-      body: JSON.stringify({
-        date: dateInput.value,
-        time: selectedTime,
-        tickets: count,
-        email: emailValue
-      })
-    });
-
-    const data = await res.json();
-
-    if(data.url){
-      window.location.href = data.url;
-    } else {
-      console.error(data);
-      alert("Unable to create Stripe checkout");
-    }
-
-  } catch(err){
-    console.error(err);
-    alert("Connection error");
-  }
-});
   const data = await res.json();
   if(data.url) window.location.href=data.url;
 });
