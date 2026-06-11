@@ -80,6 +80,19 @@ export default async function handler(req, res) {
           console.error("SUPABASE ERROR:", error);
         } else {
           console.log("Booking saved");
+          
+          await fetch("https://hook.eu1.make.com/srcff5iqkv0uauobof64kqfrnox223t6", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    email,
+    date,
+    time,
+    tickets: Number(tickets),
+  }),
+});
         }
       } else {
         console.log("Duplicate booking skipped");
