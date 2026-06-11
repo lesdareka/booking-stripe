@@ -7,8 +7,6 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  console.log("WEBHOOK TRIGGERED");
-
   if (req.method !== "POST") {
     return res.status(200).send("OK");
   }
@@ -16,103 +14,67 @@ export default async function handler(req, res) {
   try {
     const event = req.body;
 
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object;
-
-      const email = session.customer_email;
-      const date = session.metadata?.date;
-      const time = session.metadata?.time;
-      const tickets = session.metadata?.tickets;
-
-      console.log("Paid user:", email, date, time, tickets);
-
-      // ❗ 1. ЗАЩИТА: если email нет — выходим
-      if (!email) {
-        console.error("No email in session");
-        return res.status(200).json({ received: true });
-      }
-
-     // ✔ 2. MAILCHIMP
-const subscriberHash = crypto
-  .createHash("md5")
-  .update(email.toLowerCase())
-  .digest("hex");
-
-const mcResponse = await fetch(
-  `https://${process.env.MAILCHIMP_SERVER}.api.mailchimp.com/3.0/lists/${process.env.MAILCHIMP_AUDIENCE_ID}/members/${subscriberHash}`,
-  {
-    method: "PUT",
-    headers: {
-      Authorization: `apikey ${process.env.MAILCHIMP_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email_address: email,
-      status_if_new: "subscribed",
-      merge_fields: {
-        MMERGE7: date,
-        MMERGE8: time,
-      },
-      tags: ["paid_booking"],
-    }),
-  }
-);
-
-const mcData = await mcResponse.json();
-
-console.log("MAILCHIMP STATUS:", mcResponse.status);
-console.log("MAILCHIMP RESPONSE:", JSON.stringify(mcData));
-
-      // ❗ 3. ПРОВЕРКА ДУБЛЯ
-      const { data: existing } = await supabase
-        .from("bookings")
-        .select("*")
-        .eq("email", email)
-        .eq("date", date)
-        .eq("time", time);
-
-      if (!existing || existing.length === 0) {
-        const { error } = await supabase.from("bookings").insert([
-          {
-            email,
-            date,
-            time,
-            tickets: Number(tickets),
-          },
-        ]);
-
-        if (error) {
-          console.error("SUPABASE ERROR:", error);
-        } else {
-          console.log("Booking saved");
-          
-         const makeResponse = await fetch(
-  "https://hook.eu1.make.com/srcff5iqkv0uauobof64kqfrnox223t6",
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email,
-      date,
-      time,
-      tickets: Number(tickets),
-    }),
-  }
-);
-
-console.log("MAKE STATUS:", makeResponse.status);
-        }
-      } else {
-        console.log("Duplicate booking skipped");
-      }
+    if (event.type !== "checkout.session.completed") {
+      return res.status(200).json({ received: true });
     }
 
-    res.status(200).json({ received: true });
+    const session = event.data.object;
+
+    const email = session.customer_email;
+    const date = session.metadata?.date;
+    const time = session.metadata?.time;
+    const tickets = session.metadata?.tickets;
+
+    if (!email) {
+      console.error("No email in session");
+      return res.status(200).json({ received: true });
+    }
+
+    // 1. MAILCHIMP (оставляем только маркетинг + confirmation)
+    const subscriberHash = crypto
+      .createHash("md5")
+      .update(email.toLowerCase())
+      .digest("hex");
+
+    await fetch(
+      `https://${process.env.MAILCHIMP_SERVER}.api.mailchimp.com/3.0/lists/${process.env.MAILCHIMP_AUDIENCE_ID}/members/${subscriberHash}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `apikey ${process.env.MAILCHIMP_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email_address: email,
+          status_if_new: "subscribed",
+          status: "subscribed",
+          merge_fields: {
+            MMERGE7: date,
+            MMERGE8: time,
+          },
+          tags: ["paid_booking"],
+        }),
+      }
+    );
+
+    // 2. SUPABASE (источник истины)
+    const { error } = await supabase.from("bookings").insert([
+      {
+        email,
+        date,
+        time,
+        tickets: Number(tickets),
+      },
+    ]);
+
+    if (error) {
+      console.error("SUPABASE ERROR:", error);
+    }
+
+    return res.status(200).json({ received: true });
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 }
