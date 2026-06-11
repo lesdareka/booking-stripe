@@ -32,31 +32,36 @@ export default async function handler(req, res) {
         return res.status(200).json({ received: true });
       }
 
-      // ✔ 2. MAILCHIMP
-      const subscriberHash = crypto
-        .createHash("md5")
-        .update(email.toLowerCase())
-        .digest("hex");
+     // ✔ 2. MAILCHIMP
+const subscriberHash = crypto
+  .createHash("md5")
+  .update(email.toLowerCase())
+  .digest("hex");
 
-      await fetch(
-        `https://${process.env.MAILCHIMP_SERVER}.api.mailchimp.com/3.0/lists/${process.env.MAILCHIMP_AUDIENCE_ID}/members/${subscriberHash}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `apikey ${process.env.MAILCHIMP_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email_address: email,
-            status_if_new: "subscribed",
-            merge_fields: {
-              MMERGE7: date,
-              MMERGE8: time,
-            },
-           tags: ["paid_booking"]
-          }),
-        }
-      );
+const mcResponse = await fetch(
+  `https://${process.env.MAILCHIMP_SERVER}.api.mailchimp.com/3.0/lists/${process.env.MAILCHIMP_AUDIENCE_ID}/members/${subscriberHash}`,
+  {
+    method: "PUT",
+    headers: {
+      Authorization: `apikey ${process.env.MAILCHIMP_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email_address: email,
+      status_if_new: "subscribed",
+      merge_fields: {
+        MMERGE7: date,
+        MMERGE8: time,
+      },
+      tags: ["paid_booking"],
+    }),
+  }
+);
+
+const mcData = await mcResponse.json();
+
+console.log("MAILCHIMP STATUS:", mcResponse.status);
+console.log("MAILCHIMP RESPONSE:", JSON.stringify(mcData));
 
       // ❗ 3. ПРОВЕРКА ДУБЛЯ
       const { data: existing } = await supabase
@@ -81,18 +86,23 @@ export default async function handler(req, res) {
         } else {
           console.log("Booking saved");
           
-          await fetch("https://hook.eu1.make.com/srcff5iqkv0uauobof64kqfrnox223t6", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    email,
-    date,
-    time,
-    tickets: Number(tickets),
-  }),
-});
+         const makeResponse = await fetch(
+  "https://hook.eu1.make.com/srcff5iqkv0uauobof64kqfrnox223t6",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      date,
+      time,
+      tickets: Number(tickets),
+    }),
+  }
+);
+
+console.log("MAKE STATUS:", makeResponse.status);
         }
       } else {
         console.log("Duplicate booking skipped");
