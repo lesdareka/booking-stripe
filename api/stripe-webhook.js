@@ -32,31 +32,36 @@ export default async function handler(req, res) {
         return res.status(200).json({ received: true });
       }
 
-      // ✔ 2. MAILCHIMP
-      const subscriberHash = crypto
-        .createHash("md5")
-        .update(email.toLowerCase())
-        .digest("hex");
+     // ✔ 2. MAILCHIMP
+const subscriberHash = crypto
+  .createHash("md5")
+  .update(email.toLowerCase())
+  .digest("hex");
 
-      await fetch(
-        `https://${process.env.MAILCHIMP_SERVER}.api.mailchimp.com/3.0/lists/${process.env.MAILCHIMP_AUDIENCE_ID}/members/${subscriberHash}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `apikey ${process.env.MAILCHIMP_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email_address: email,
-            status_if_new: "subscribed",
-            merge_fields: {
-              MERGE7: date,
-              MERGE8: time,
-            },
-            tags: ["paid_booking"],
-          }),
-        }
-      );
+const mcResponse = await fetch(
+  `https://${process.env.MAILCHIMP_SERVER}.api.mailchimp.com/3.0/lists/${process.env.MAILCHIMP_AUDIENCE_ID}/members/${subscriberHash}`,
+  {
+    method: "PUT",
+    headers: {
+      Authorization: `apikey ${process.env.MAILCHIMP_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email_address: email,
+      status_if_new: "subscribed",
+      merge_fields: {
+        MERGE7: date,
+        MERGE8: time,
+      },
+      tags: ["paid_booking"],
+    }),
+  }
+);
+
+const mcData = await mcResponse.text();
+
+console.log("MAILCHIMP STATUS:", mcResponse.status);
+console.log("MAILCHIMP RESPONSE:", mcData);
 
       // ❗ 3. проверка дубля
       const { data: existing, error: selectError } = await supabase
