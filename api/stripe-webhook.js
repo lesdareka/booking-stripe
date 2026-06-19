@@ -50,8 +50,8 @@ export default async function handler(req, res) {
             email_address: email,
             status_if_new: "subscribed",
             merge_fields: {
-              MMERGE7: date,
-              MMERGE8: time,
+              MERGE7: date,
+              MERGE8: time,
             },
             tags: ["paid_booking"],
           }),
