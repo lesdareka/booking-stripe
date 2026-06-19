@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   try {
     const { email, date, time, tickets } = req.body;
 
-    // ===== 1. ПРОВЕРКА ЛИМИТА =====
+    // ===== 1. LIMIT CHECK =====
     const { data, error } = await supabase
       .from("bookings")
       .select("tickets")
@@ -27,17 +27,19 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "DB error" });
     }
 
-    const total = data.reduce((sum, r) => sum + Number(r.tickets), 0);
+    const total = (data || []).reduce(
+      (sum, r) => sum + Number(r.tickets),
+      0
+    );
 
     if (total + Number(tickets) > 10) {
-      return res.status(400).json({
-        error: "No spots left"
-      });
+      return res.status(400).json({ error: "No spots left" });
     }
 
-    // ===== 2. STRIPE =====
+    // ===== 2. STRIPE SESSION =====
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+
       customer_email: email,
 
       line_items: [
@@ -55,10 +57,9 @@ export default async function handler(req, res) {
       ],
 
       metadata: {
-        date,
-        time,
-        email,
-        tickets
+        date: String(date),
+        time: String(time),
+        tickets: String(tickets),
       },
 
       success_url: "https://remussance.com/success",
@@ -66,7 +67,6 @@ export default async function handler(req, res) {
     });
 
     return res.status(200).json({ url: session.url });
-
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
