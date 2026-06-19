@@ -26,44 +26,62 @@ export default async function handler(req, res) {
 
       console.log("Paid user:", email, date, time, tickets);
 
-      // ❗ 1. защита: нет email
       if (!email) {
         console.error("No email in session");
         return res.status(200).json({ received: true });
       }
 
-     // ✔ 2. MAILCHIMP
-const subscriberHash = crypto
-  .createHash("md5")
-  .update(email.toLowerCase())
-  .digest("hex");
+      // ---------------------------
+      // MAILCHIMP
+      // ---------------------------
 
-const mcResponse = await fetch(
-  `https://${process.env.MAILCHIMP_SERVER}.api.mailchimp.com/3.0/lists/${process.env.MAILCHIMP_AUDIENCE_ID}/members/${subscriberHash}`,
-  {
-    method: "PUT",
-    headers: {
-      Authorization: `apikey ${process.env.MAILCHIMP_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email_address: email,
-      status_if_new: "subscribed",
-      merge_fields: {
-        MMERGE7: date,
-        MMERGE8: time,
-      },
-      tags: ["paid_booking"],
-    }),
-  }
-);
+      const subscriberHash = crypto
+        .createHash("md5")
+        .update(email.toLowerCase())
+        .digest("hex");
 
-const mcData = await mcResponse.text();
+      const mcResponse = await fetch(
+        `https://${process.env.MAILCHIMP_SERVER}.api.mailchimp.com/3.0/lists/${process.env.MAILCHIMP_AUDIENCE_ID}/members/${subscriberHash}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `apikey ${process.env.MAILCHIMP_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email_address: email,
+            status_if_new: "subscribed",
+          }),
+        }
+      );
 
-console.log("MAILCHIMP STATUS:", mcResponse.status);
-console.log("MAILCHIMP RESPONSE:", mcData);
+      const mcText = await mcResponse.text();
 
-      // ❗ 3. проверка дубля
+      if (!mcResponse.ok) {
+        console.error("MAILCHIMP ERROR:", mcResponse.status, mcText);
+      } else {
+        console.log("MAILCHIMP OK");
+      }
+
+      // отдельно теги (правильно)
+      await fetch(
+        `https://${process.env.MAILCHIMP_SERVER}.api.mailchimp.com/3.0/lists/${process.env.MAILCHIMP_AUDIENCE_ID}/members/${subscriberHash}/tags`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `apikey ${process.env.MAILCHIMP_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            tags: [{ name: "paid_booking", status: "active" }],
+          }),
+        }
+      );
+
+      // ---------------------------
+      // SUPABASE CHECK
+      // ---------------------------
+
       const { data: existing, error: selectError } = await supabase
         .from("bookings")
         .select("*")
@@ -90,18 +108,18 @@ console.log("MAILCHIMP RESPONSE:", mcData);
         } else {
           console.log("Booking saved");
 
-        await fetch("https://hook.eu1.make.com/srcff5iqkv0uauobof64kqfrnox223t6", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    email,
-    date,
-    time,
-    tickets: Number(tickets),
-  }),
-});
+          await fetch("https://hook.eu1.make.com/srcff5iqkv0uauobof64kqfrnox223t6", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email,
+              date,
+              time,
+              tickets: Number(tickets),
+            }),
+          });
         }
       } else {
         console.log("Duplicate booking skipped");
