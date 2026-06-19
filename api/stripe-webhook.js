@@ -50,8 +50,8 @@ const mcResponse = await fetch(
       email_address: email,
       status_if_new: "subscribed",
       merge_fields: {
-        MERGE7: date,
-        MERGE8: time,
+        MMERGE7: date,
+        MMERGE8: time,
       },
       tags: ["paid_booking"],
     }),
