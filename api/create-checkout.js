@@ -14,9 +14,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { email, date, time, tickets } = req.body;
+    const {
+      firstName,
+      lastName,
+      email,
+      date,
+      time,
+      tickets,
+    } = req.body;
 
-    // ===== 1. LIMIT CHECK =====
+    // ===== 1. ПРОВЕРКА ЛИМИТА =====
     const { data, error } = await supabase
       .from("bookings")
       .select("tickets")
@@ -33,10 +40,12 @@ export default async function handler(req, res) {
     );
 
     if (total + Number(tickets) > 10) {
-      return res.status(400).json({ error: "No spots left" });
+      return res.status(400).json({
+        error: "No spots left",
+      });
     }
 
-    // ===== 2. STRIPE SESSION =====
+    // ===== 2. STRIPE =====
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
 
@@ -52,11 +61,13 @@ export default async function handler(req, res) {
             },
             unit_amount: 100,
           },
-          quantity: Number(tickets || 1),
+          quantity: Number(tickets),
         },
       ],
 
       metadata: {
+        firstName: String(firstName),
+        lastName: String(lastName),
         date: String(date),
         time: String(time),
         tickets: String(tickets),
@@ -66,8 +77,13 @@ export default async function handler(req, res) {
       cancel_url: "https://booking-stripe-coral.vercel.app/booking.html",
     });
 
-    return res.status(200).json({ url: session.url });
+    return res.status(200).json({
+      url: session.url,
+    });
+
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    return res.status(500).json({
+      error: e.message,
+    });
   }
 }
