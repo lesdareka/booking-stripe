@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -132,69 +131,68 @@ button{
   }
 }
 </style>
-
 </head>
 
 <body>
 
 <form id="form">
 
-<div class="block">
-  <div class="label">Choose day</div>
-  <div class="days">
-    <div class="day" id="sat">Saturday</div>
-    <div class="day" id="sun">Sunday</div>
+  <div class="block">
+    <div class="label">Choose day</div>
+    <div class="days">
+      <div class="day" id="sat">Saturday</div>
+      <div class="day" id="sun">Sunday</div>
+    </div>
   </div>
-</div>
-
-<div class="block">
-  <div class="label">Date</div>
-  <input id="date" class="input" type="date" disabled>
-</div>
-
-<div class="block">
-  <div class="label">Time</div>
-  <div class="chips" id="timeSlots"></div>
-  <input type="hidden" id="time">
-</div>
-
-<div class="block">
-  <div class="label">Tickets (1–10)</div>
-  <div class="counter">
-    <button type="button" id="minus">-</button>
-    <span id="count">1</span>
-    <button type="button" id="plus">+</button>
-  </div>
-  <input type="hidden" id="tickets" value="1">
-</div>
 
   <div class="block">
-  <div class="label">First name</div>
-  <input id="firstName" class="input" type="text">
-</div>
+    <div class="label">Date</div>
+    <input id="date" class="input" type="date" disabled>
+  </div>
 
-<div class="block">
-  <div class="label">Last name</div>
-  <input id="lastName" class="input" type="text">
-</div>
+  <div class="block">
+    <div class="label">Time</div>
+    <div class="chips" id="timeSlots"></div>
+    <input type="hidden" id="time">
+  </div>
 
-<div class="block">
-  <div class="label">Email</div>
-  <input id="email" class="input" type="email">
-</div>
+  <div class="block">
+    <div class="label">Tickets (1–10)</div>
+    <div class="counter">
+      <button type="button" id="minus">-</button>
+      <span id="count">1</span>
+      <button type="button" id="plus">+</button>
+    </div>
+    <input type="hidden" id="tickets" value="1">
+  </div>
 
-<div class="block policy">
-  <input type="checkbox" id="policy">
-  <label for="policy">
-    I understand the 
-    <a href="https://remussance.com/refund_policy" target="_blank">
-      cancellation policy
-    </a>
-    for guided tours
-  </label>
-</div>
+  <div class="block">
+    <div class="label">First name</div>
+    <input id="firstName" class="input" type="text">
+  </div>
 
-<button class="primary-btn" type="submit">Pay</button>
+  <div class="block">
+    <div class="label">Last name</div>
+    <input id="lastName" class="input" type="text">
+  </div>
+
+  <div class="block">
+    <div class="label">Email</div>
+    <input id="email" class="input" type="email">
+  </div>
+
+  <div class="block policy">
+    <input type="checkbox" id="policy">
+    <label for="policy">
+      I understand the
+      <a href="https://remussance.com/refund_policy" target="_blank">
+        cancellation policy
+      </a>
+      for guided tours
+    </label>
+  </div>
+
+  <button class="primary-btn" type="submit">Pay</button>
 
 </form>
 
@@ -203,117 +201,118 @@ let selectedDay = null;
 let selectedTime = null;
 let count = 1;
 
+const form = document.getElementById("form");
 const dateInput = document.getElementById("date");
+const timeBox = document.getElementById("timeSlots");
+const timeHidden = document.getElementById("time");
+const ticketsHidden = document.getElementById("tickets");
+const countEl = document.getElementById("count");
 
-// DAY SELECT
-document.getElementById("sat").onclick = () => {
-  selectDay("sat");
-  enableDate(6);
-};
+// =====================
+// DAY
+// =====================
+document.getElementById("sat").onclick = () => setDay(6);
+document.getElementById("sun").onclick = () => setDay(0);
 
-document.getElementById("sun").onclick = () => {
-  selectDay("sun");
-  enableDate(0);
-};
+function setDay(day) {
+  selectedDay = day;
 
-function selectDay(type){
   document.querySelectorAll(".day").forEach(d => d.classList.remove("active"));
-  document.getElementById(type).classList.add("active");
-}
-
-// ENABLE DATE
-function enableDate(dayType){
-  selectedDay = dayType;
+  document.getElementById(day === 6 ? "sat" : "sun").classList.add("active");
 
   dateInput.disabled = false;
   dateInput.value = "";
-  document.getElementById("timeSlots").innerHTML = "";
+
+  timeBox.innerHTML = "";
   selectedTime = null;
+  timeHidden.value = "";
 }
 
-// ✅ СТАБИЛЬНЫЙ ОБРАБОТЧИК ДАТЫ (фикс мобилки)
-dateInput.addEventListener("input", handleDateChange);
-
-function handleDateChange(){
+// =====================
+// DATE
+// =====================
+dateInput.addEventListener("input", () => {
   if (!dateInput.value || selectedDay === null) return;
 
   const [y, m, d] = dateInput.value.split("-").map(Number);
-  const safeDate = new Date(y, m - 1, d);
-  const day = safeDate.getDay();
+  const date = new Date(y, m - 1, d);
 
-  if (selectedDay === 6 && day !== 6) {
+  if (date.getDay() !== selectedDay) {
     dateInput.value = "";
+    timeBox.innerHTML = "";
+    selectedTime = null;
     return;
   }
 
-  if (selectedDay === 0 && day !== 0) {
-    dateInput.value = "";
-    return;
-  }
+  renderTimes(selectedDay);
+});
 
-  renderTimes(day);
-}
-
-// TIME
-function renderTimes(day){
-  const box = document.getElementById("timeSlots");
-  box.innerHTML = "";
+// =====================
+// TIMES
+// =====================
+function renderTimes(day) {
+  timeBox.innerHTML = "";
 
   let slots = [];
+  if (day === 6) slots = ["10:00", "16:00"];
+  if (day === 0) slots = ["14:00"];
 
-  if(day === 6) slots = ["10:00", "16:00"];
-  if(day === 0) slots = ["14:00"];
-
-  slots.forEach(t=>{
+  slots.forEach(time => {
     const el = document.createElement("div");
-    el.className="chip";
-    el.textContent=t;
+    el.className = "chip";
+    el.textContent = time;
 
-    el.onclick=()=>{
-      document.querySelectorAll(".chip").forEach(c=>c.classList.remove("active"));
+    el.onclick = () => {
+      document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
       el.classList.add("active");
-      selectedTime=t;
-      document.getElementById("time").value = t;
+
+      selectedTime = time;
+      timeHidden.value = time;
     };
 
-    box.appendChild(el);
+    timeBox.appendChild(el);
   });
 }
 
-// TICKETS
-document.getElementById("plus").onclick=()=>{
-  if(count<10){
+// =====================
+// COUNTER
+// =====================
+document.getElementById("plus").onclick = () => {
+  if (count < 10) {
     count++;
-    document.getElementById("count").textContent=count;
-    document.getElementById("tickets").value=count;
+    updateCount();
   }
 };
 
-document.getElementById("minus").onclick=()=>{
-  if(count>1){
+document.getElementById("minus").onclick = () => {
+  if (count > 1) {
     count--;
-    document.getElementById("count").textContent=count;
-    document.getElementById("tickets").value=count;
+    updateCount();
   }
 };
 
-// SUBMIT
-document.getElementById("form").addEventListener("submit", async (e)=>{
-  e.preventDefault();
+function updateCount() {
+  countEl.textContent = count;
+  ticketsHidden.value = count;
+}
 
-  const timeValue = document.getElementById("time").value;
+// =====================
+// SUBMIT
+// =====================
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
   const firstName = document.getElementById("firstName").value.trim();
   const lastName = document.getElementById("lastName").value.trim();
-  const emailValue = document.getElementById("email").value.trim();
+  const email = document.getElementById("email").value.trim();
 
   if (
     selectedDay === null ||
     !dateInput.value ||
-    !timeValue ||
+    !selectedTime ||
     !firstName ||
     !lastName ||
-    !emailValue
+    !email
   ) {
     alert("Fill all fields");
     return;
@@ -326,15 +325,13 @@ document.getElementById("form").addEventListener("submit", async (e)=>{
 
   const res = await fetch("/api/create-checkout", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       firstName,
       lastName,
-      email: emailValue,
+      email,
       date: dateInput.value,
-      time: timeValue,
+      time: selectedTime,
       tickets: count
     })
   });
@@ -347,46 +344,6 @@ document.getElementById("form").addEventListener("submit", async (e)=>{
   }
 
   window.location.href = data.url;
-});
-
-  console.log({
-    selectedDay,
-    date: dateInput.value,
-    selectedTime
-  });
-
-const timeValue = document.getElementById("time").value;
-const emailValue = document.getElementById("email").value;
-
-if(selectedDay === null || !dateInput.value || !timeValue || !emailValue){
-  alert("Fill all fields");
-  return;
-  }
-
-  if(!document.getElementById("policy").checked){
-    alert("Please accept the cancellation policy");
-    return;
-  }
-
-  const res = await fetch("/api/create-checkout",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({
-      date: dateInput.value,
-      time: selectedTime,
-      tickets: count,
-      email: document.getElementById("email").value
-    })
-  });
-
- const data = await res.json();
-
-if (!res.ok) {
-  alert(data.error || "No spots left");
-  return;
-}
-
-window.location.href = data.url;
 });
 </script>
 
