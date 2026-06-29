@@ -168,6 +168,16 @@ button{
   <input type="hidden" id="tickets" value="1">
 </div>
 
+  <div class="block">
+  <div class="label">First name</div>
+  <input id="firstName" class="input" type="text">
+</div>
+
+<div class="block">
+  <div class="label">Last name</div>
+  <input id="lastName" class="input" type="text">
+</div>
+
 <div class="block">
   <div class="label">Email</div>
   <input id="email" class="input" type="email">
@@ -290,6 +300,54 @@ document.getElementById("minus").onclick=()=>{
 // SUBMIT
 document.getElementById("form").addEventListener("submit", async (e)=>{
   e.preventDefault();
+
+  const timeValue = document.getElementById("time").value;
+
+  const firstName = document.getElementById("firstName").value.trim();
+  const lastName = document.getElementById("lastName").value.trim();
+  const emailValue = document.getElementById("email").value.trim();
+
+  if (
+    selectedDay === null ||
+    !dateInput.value ||
+    !timeValue ||
+    !firstName ||
+    !lastName ||
+    !emailValue
+  ) {
+    alert("Fill all fields");
+    return;
+  }
+
+  if (!document.getElementById("policy").checked) {
+    alert("Please accept the cancellation policy");
+    return;
+  }
+
+  const res = await fetch("/api/create-checkout", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      firstName,
+      lastName,
+      email: emailValue,
+      date: dateInput.value,
+      time: timeValue,
+      tickets: count
+    })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    alert(data.error || "No spots left");
+    return;
+  }
+
+  window.location.href = data.url;
+});
 
   console.log({
     selectedDay,
