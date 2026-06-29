@@ -19,26 +19,35 @@ export default async function handler(req, res) {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
 
-      // ✔ FIXED EMAIL
       const email =
         session.customer_details?.email || session.customer_email;
 
       const metadata = session.metadata || {};
 
+      const firstName = metadata.firstName;
+      const lastName = metadata.lastName;
       const date = metadata.date;
       const time = metadata.time;
       const tickets = metadata.tickets;
 
-      console.log("Paid user:", email, date, time, tickets);
+      console.log(
+        "Paid user:",
+        firstName,
+        lastName,
+        email,
+        date,
+        time,
+        tickets
+      );
 
       if (!email) {
         console.error("No email in session");
         return res.status(200).json({ received: true });
       }
 
-      // ---------------------------
+      // ===========================
       // MAILCHIMP
-      // ---------------------------
+      // ===========================
 
       const subscriberHash = crypto
         .createHash("md5")
@@ -68,10 +77,6 @@ export default async function handler(req, res) {
         console.log("MAILCHIMP OK");
       }
 
-      // ---------------------------
-      // TAGS (Mailchimp)
-      // ---------------------------
-
       await fetch(
         `https://${process.env.MAILCHIMP_SERVER}.api.mailchimp.com/3.0/lists/${process.env.MAILCHIMP_AUDIENCE_ID}/members/${subscriberHash}/tags`,
         {
@@ -81,14 +86,19 @@ export default async function handler(req, res) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            tags: [{ name: "paid_booking", status: "active" }],
+            tags: [
+              {
+                name: "paid_booking",
+                status: "active",
+              },
+            ],
           }),
         }
       );
 
-      // ---------------------------
+      // ===========================
       // SUPABASE
-      // ---------------------------
+      // ===========================
 
       const { data: existing, error: selectError } = await supabase
         .from("bookings")
@@ -106,6 +116,8 @@ export default async function handler(req, res) {
           .from("bookings")
           .insert([
             {
+              first_name: firstName,
+              last_name: lastName,
               email,
               date,
               time,
@@ -117,32 +129,6 @@ export default async function handler(req, res) {
           console.error("SUPABASE INSERT ERROR:", insertError);
         } else {
           console.log("Booking saved");
-
-          // ---------------------------
-          // MAKE (SAFE)
-          // ---------------------------
-
-          try {
-            await fetch(
-              "https://hook.eu1.make.com/srcff5iqkv0uauobof64kqfrnox223t6",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  email,
-                  date,
-                  time,
-                  tickets: Number(tickets),
-                }),
-              }
-            );
-
-            console.log("MAKE SENT");
-          } catch (err) {
-            console.error("MAKE ERROR:", err);
-          }
         }
       } else {
         console.log("Duplicate booking skipped");
@@ -150,8 +136,11 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({ received: true });
+
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({
+      error: error.message,
+    });
   }
 }
